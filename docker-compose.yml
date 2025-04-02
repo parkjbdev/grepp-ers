@@ -1,0 +1,51 @@
+services:
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_DOCKER_USER}
+      POSTGRES_PASSWORD: ${POSTGRESQL_DOCKER_PASS}
+      POSTGRESQL_APP_USER: ${POSTGRESQL_APP_USER}
+      POSTGRESQL_APP_PASS: ${POSTGRESQL_APP_PASS}
+
+      POSTGRESQL_DB: ${POSTGRESQL_DB}
+      APP_DB_SCHEMA: ${APP_DB_SCHEMA}
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webapp
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRESQL_APP_USER}:${POSTGRESQL_APP_PASS}@database:5432/${POSTGRESQL_DB}
+    volumes:
+      - .:/project
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  database:
