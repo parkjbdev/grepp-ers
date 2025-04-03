@@ -1,13 +1,15 @@
 from typing import Optional
 import asyncpg
 import os
+
 from asyncpg import Pool
 
+from app.database.interface import Database
 from app.utils.decorators import singleton
 
 
 @singleton
-class Database:
+class ExamReservationSystemDatabase(Database):
     def __init__(self):
         self._pool: Optional[Pool] = None
 
@@ -30,6 +32,3 @@ class Database:
         if self._pool is None:
             raise ConnectionError("DB Connection Failed.. Is connect() called?")
         return self._pool
-
-
-db = Database()

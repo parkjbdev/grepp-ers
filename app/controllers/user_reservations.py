@@ -1,8 +1,7 @@
 from datetime import datetime
-from pydoc import describe
 from typing import Optional
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/users/reservations", tags=["사용자 예약관리"])
 
