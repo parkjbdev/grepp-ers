@@ -1,0 +1,70 @@
+CREATE TABLE reservations
+(
+    id           SERIAL PRIMARY KEY                                 NOT NULL,
+    slot_id      INTEGER                                            NOT NULL
+        CONSTRAINT "reservations__slots.id_fk" REFERENCES slots (id),
+    user_id      INTEGER                                            NOT NULL
+        CONSTRAINT "reservations__users.id_fk" REFERENCES users (id),
+    count        INTEGER                  DEFAULT 0                 NOT NULL CHECK (count >= 0),
+    confirmed    bool                     DEFAULT FALSE             NOT NULL,
+    created_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    confirmed_at TIMESTAMP WITH TIME ZONE                           NULL,
+    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- reservations table TRIGGER: update modification
+CREATE OR REPLACE FUNCTION update_modified_col()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_user_updatedtime
+    BEFORE UPDATE
+    ON reservations
+    FOR EACH ROW
+EXECUTE FUNCTION update_modified_col();
+
+-- reservations table TRIGGER: confirm reservation
+CREATE OR REPLACE FUNCTION update_confirmed_col()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    slot_count INTEGER; -- Declare the variable here
+BEGIN
+    IF (NEW.confirmed = OLD.confirmed) THEN
+        RETURN NEW;
+    END IF;
+
+    IF (NEW.confirmed = TRUE) THEN
+        -- count reserved population
+        SELECT COALESCE(SUM(count), 0)
+        INTO slot_count
+        FROM reservations
+        WHERE slot_id = OLD.slot_id AND confirmed = TRUE;
+        IF (slot_count + OLD.count > 50000) THEN
+            RAISE EXCEPTION 'Slot Population Limit 50000 Exceeded';
+        END IF;
+
+        NEW.confirmed_at = CURRENT_TIMESTAMP;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_user_confirmedtime
+    BEFORE UPDATE
+    ON reservations
+    FOR EACH ROW
+EXECUTE FUNCTION update_confirmed_col();
+
+
+-- GRANT PERMISSIONS
+ALTER TABLE reservations
+    OWNER TO greppers;
+
+GRANT ALL PRIVILEGES ON reservations TO "greppers";
