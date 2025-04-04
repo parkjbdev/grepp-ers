@@ -47,7 +47,7 @@ BEGIN
         WHERE slot_id = OLD.slot_id
           AND confirmed = TRUE;
         IF (slot_count + OLD.amount > 50000) THEN
-            RAISE EXCEPTION 'Slot Population Limit 50000 Exceeded';
+            RAISE EXCEPTION 'SlotLimitExceeded' USING DETAIL = 'Slot population limit 50000 exceeded';
         END IF;
 
         NEW.confirmed_at = CURRENT_TIMESTAMP;
