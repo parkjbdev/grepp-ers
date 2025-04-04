@@ -13,11 +13,11 @@ dev: db activate install
 # 데이터베이스 실행
 db:
 	# DB 상태 확인
-	@if docker-compose ps | grep -q "database.*Up"; then \
+	@if docker compose ps | grep -q "database.*Up"; then \
 		echo "🟢 DB가 이미 돌아가고 있네요!"; \
 	else \
 		echo "🔄 DB를 시작할게요..."; \
-		docker-compose up -d database; \
+		docker compose up --build -d database; \
 		echo "⏳ DB가 완전히 준비될 때까지 잠시만 기다려주세요..."; \
 		until docker exec database pg_isready -U postgres &>/dev/null; do \
 			echo "⏳ DB가 아직 준비 중이에요... 조금만 더 기다려주세요"; \
@@ -76,9 +76,9 @@ test: db activate
 
 # 모든 컨테이너 종료 및 임시 파일 정리
 clean:
-	@if docker-compose ps | grep -q "Up"; then \
+	@if docker compose ps | grep -q "Up"; then \
 		echo "🧹 실행 중인 컨테이너들을 정리하고 있어요..."; \
-		docker-compose down -v; \
+		docker compose down -v; \
 		echo "✅ 모든 컨테이너가 종료되었어요"; \
 	else \
 		echo "ℹ️ 실행 중인 컨테이너가 없네요"; \
@@ -91,12 +91,12 @@ clean:
 
 # 프로덕션 모드로 전체 스택 실행
 prod:
-	@if docker-compose ps | grep -q "Up"; then \
+	@if docker compose ps | grep -q "Up"; then \
 		echo "🔄 일부 컨테이너가 이미 실행 중이네요. 깔끔하게 재시작할게요"; \
-		docker-compose down; \
+		docker compose down; \
 	fi
 	@echo "🚀 프로덕션 스택을 시작하고 있어요..."
-	docker-compose up --build -d
+	docker compose up --build -d
 	@echo "✅ 프로덕션 환경이 준비되었어요!"
 
 # 도움말
