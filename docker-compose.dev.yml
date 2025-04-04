@@ -1,5 +1,0 @@
-services:
-  webapp:
-    volumes:
-      - .:/project
-    command: ["fastapi", "dev", "--host", "0.0.0.0", "--port", "8000"]

@@ -7,8 +7,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRESQL_DOCKER_USER}
-      POSTGRES_PASSWORD: ${POSTGRESQL_DOCKER_PASS}
+      POSTGRES_USER: ${POSTGRESQL_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRESQL_ROOT_PASS}
       POSTGRESQL_APP_USER: ${POSTGRESQL_APP_USER}
       POSTGRESQL_APP_PASS: ${POSTGRESQL_APP_PASS}
 
@@ -20,7 +20,7 @@ services:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,9 +33,8 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - ENVIRONMENT=PRODUCTION
       - DATABASE_URL=postgresql://${POSTGRESQL_APP_USER}:${POSTGRESQL_APP_PASS}@database:5432/${POSTGRESQL_DB}
-    volumes:
-      - .:/project
     depends_on:
       database:
         condition: service_healthy
