@@ -11,12 +11,12 @@ from app.utils.decorators import singleton
 @singleton
 class ExamReservationSystemDatabase(Database):
     def __init__(self):
-        self._pool: Optional[Pool] = None
+        self.__pool: Optional[Pool] = None
 
     async def connect(self):
         print("connecting")
-        if self._pool is None:
-            self._pool = await asyncpg.create_pool(
+        if self.__pool is None:
+            self.__pool = await asyncpg.create_pool(
                 os.getenv("DATABASE_URL"),
                 min_size=5,
                 max_size=10,
@@ -24,11 +24,11 @@ class ExamReservationSystemDatabase(Database):
             )
 
     async def disconnect(self):
-        if self._pool:
-            await self._pool.close()
-            self._pool = None
+        if self.__pool:
+            await self.__pool.close()
+            self.__pool = None
 
     def get_pool(self) -> Pool:
-        if self._pool is None:
+        if self.__pool is None:
             raise ConnectionError("DB Connection Failed.. Is connect() called?")
-        return self._pool
+        return self.__pool
