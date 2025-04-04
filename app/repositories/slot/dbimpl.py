@@ -31,8 +31,8 @@ class SlotRepositoryImpl(SlotRepository):
 
     async def modify(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return conn.execute("UPDATE slots SET(time_range) = ($1) WHERE id = $2", slot.time_range, slot.id)
+            return await conn.execute("UPDATE slots SET(time_range) = ($1) WHERE id = $2", slot.time_range, slot.id)
 
     async def delete(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return conn.execute("DELETE slots WHERE id = $1", slot_id)
+            return await conn.execute("DELETE slots WHERE id = $1", slot_id)
