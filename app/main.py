@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,16 +10,15 @@ from app.controllers.user_reservations import router as reservation_controller
 from app.controllers.admin_reservations import router as admin_controller
 from app.controllers.slot import router as slot_controller
 from app.controllers.auth import router as auth_controller
-from app.dependencies.config import get_database
-
-load_dotenv()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await get_database().connect()
+    load_dotenv()
+    from app.dependencies.config import database
+    await database().connect()
     yield
-    await get_database().disconnect()
+    await database().disconnect()
 
 
 app = FastAPI(
