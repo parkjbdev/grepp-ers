@@ -22,32 +22,27 @@ database = ers_db
 
 
 # repositories
-@lru_cache()
 def user_repository(pool: Annotated[Pool, Depends(database.get_pool)]) -> UserRepository:
     from app.repositories.user.dbimpl import UserRepositoryImpl
     return UserRepositoryImpl(pool)
 
 
-@lru_cache()
 def slot_repository(pool: Annotated[Pool, Depends(database.get_pool)]) -> SlotRepository:
     from app.repositories.slot.dbimpl import SlotRepositoryImpl
     return SlotRepositoryImpl(pool)
 
 
-@lru_cache()
 def reservation_repository(pool: Annotated[Pool, Depends(database.get_pool)]) -> ReservationRepository:
     from app.repositories.reservation.dbimpl import ReservationRepositoryImpl
     return ReservationRepositoryImpl(pool)
 
 
 # services
-@lru_cache()
 def auth_service(user_repo=Depends(user_repository)) -> AuthService:
     from app.services.auth_service import AuthServiceImpl
     return AuthServiceImpl(user_repo)
 
 
-@lru_cache()
 def reservation_service(slot_repo=Depends(slot_repository),
                         reservation_repo=Depends(reservation_repository)) -> ExamManagementService:
     from app.services.exam_management_service import ExamManagementServiceImpl
