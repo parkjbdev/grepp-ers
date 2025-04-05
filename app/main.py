@@ -1,15 +1,14 @@
-import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
 from dotenv import load_dotenv
+from fastapi import FastAPI
 from starlette import status
 from starlette.responses import RedirectResponse
 
-from app.controllers.user_reservations import router as reservation_controller
 from app.controllers.admin_reservations import router as admin_controller
-from app.controllers.slot import router as slot_controller
 from app.controllers.auth import router as auth_controller
+from app.controllers.slot import router as slot_controller
+from app.controllers.user_reservations import router as reservation_controller
 
 
 @asynccontextmanager
