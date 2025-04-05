@@ -10,7 +10,10 @@ class UserRepositoryImpl(UserRepository):
 
     async def find(self, username: str):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return User(**dict(await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)))
+            user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
+            if user is None:
+                return None
+            return User(**dict(user))
 
     async def insert(self, username, hashed_password):
         async with self.__pool.acquire() as conn:  # type: Connection
@@ -20,8 +23,12 @@ class UserRepositoryImpl(UserRepository):
                                               hashed_password)
             except UniqueViolationError as e:
                 print(f"User with same username already exists: {e}")
+                raise
             except PostgresError as e:
                 print(f"PostgresERROR: {e}")
+                raise
+            except Exception as e:
+                raise
 
     async def update_password(self, username: str, password: str):
         async with self.__pool.acquire() as conn:  # type: Connection

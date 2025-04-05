@@ -9,7 +9,7 @@ router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"]
 @router.get("",
             summary="회원들의 모든 예약 조회",
             description="회원들이 예약한 내역을 모두 조회합니다.")
-async def get_all_reservations(start_at: int = datetime.now(), end_at: Optional[int] = None):
+async def get_all_reservations(start_at: Optional[datetime] = datetime.now(), end_at: Optional[datetime] = None):
     return
 
 

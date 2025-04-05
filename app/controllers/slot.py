@@ -7,7 +7,7 @@ router = APIRouter(prefix="/slots", tags=["Slots"])
 
 
 @router.get("")
-async def get_available_slots(start_at: int = datetime.now(), end_at: Optional[int] = None):
+async def get_available_slots(start_at: Optional[datetime] = datetime.now(), end_at: Optional[datetime] = None):
     return
 
 
