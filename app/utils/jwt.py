@@ -11,7 +11,9 @@ from app.models.user_model import User
 class JWTUtils:
     # JWT
     @staticmethod
-    def issue_access_token(user: User, expires_delta: Optional[timedelta] = timedelta(minutes=30)):
+    def issue_access_token(user: User,
+                           expires_delta: Optional[timedelta] = timedelta(
+                               seconds=int(os.getenv("JWT_EXPIRES_SEC", 1800)))):
         to_encode = user.model_dump(include={"username", "admin"}).copy()
         expire = datetime.now(UTC) + expires_delta
         to_encode.update({
@@ -19,7 +21,7 @@ class JWTUtils:
             "exp": expire,
             "iat": datetime.now(UTC)
         })
-        return jwt.encode(to_encode, os.getenv("JWT_SECRET"), algorithm="HS256")
+        return jwt.encode(to_encode, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM", "HS256"))
 
     @staticmethod
     async def get_user_from_token(token: str):
@@ -29,7 +31,7 @@ class JWTUtils:
             headers={"WWW-Authenticate": "Bearer"},
         )
         try:
-            payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms="HS256")
+            payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=os.getenv("JWT_ALGORITHM", "HS256"))
             username: str = payload.get("username")
             admin: bool = payload.get("admin", False)
             if username is None:
