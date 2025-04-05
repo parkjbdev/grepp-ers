@@ -18,3 +18,6 @@ class SlotRepository(ABC):
 
     @abstractmethod
     async def delete(self, slot_id: int): pass
+
+    @abstractmethod
+    async def count_confirmed_slot(self): pass

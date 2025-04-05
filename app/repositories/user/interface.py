@@ -13,3 +13,6 @@ class UserRepository(ABC):
 
     @abstractmethod
     async def delete(self, userid: int): pass
+
+    @abstractmethod
+    async def update_password(self, username: str, password: str): pass

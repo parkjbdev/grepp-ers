@@ -21,3 +21,6 @@ class ReservationRepository(ABC):
 
     @abstractmethod
     async def delete(self, reservation_id: int): pass
+
+    @abstractmethod
+    async def find_reservation_by_slot(self, slot_id: int, confirmed: bool): pass

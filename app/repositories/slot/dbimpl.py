@@ -11,7 +11,6 @@ from app.repositories.slot.interface import SlotRepository
 from app.utils.decorators import singleton
 
 
-
 @singleton
 class SlotRepositoryImpl(SlotRepository):
     def __init__(self, db: Annotated[Database, Depends(lambda: database())]):
@@ -36,3 +35,12 @@ class SlotRepositoryImpl(SlotRepository):
     async def delete(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
             return await conn.execute("DELETE slots WHERE id = $1", slot_id)
+
+    async def count_confirmed_slot(self):
+        async with self.__pool.acquire() as conn:  # type: Connection
+            return await conn.fetch("""
+                SELECT s.id AS slot_id, s.time_range, COUNT(CASE WHEN r.confirmed = TRUE THEN r.id ELSE NULL END) AS amount 
+                FROM slots AS s LEFT JOIN reservations AS r ON r.slot_id = s.id
+                GROUP BY s.id, s.time_range
+                ORDER BY s.time_range
+            """)
