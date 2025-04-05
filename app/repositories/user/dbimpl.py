@@ -1,19 +1,12 @@
-from typing import Annotated
+from asyncpg import Connection, Pool, PostgresError, UniqueViolationError
 
-from asyncpg import Connection, PostgresError, UniqueViolationError
-from fastapi import Depends
-
-from app.database.interface import Database
-from app.dependencies.config import database
 from app.models.user_model import User
 from app.repositories.user.interface import UserRepository
-from app.utils.decorators import singleton
 
 
-@singleton
 class UserRepositoryImpl(UserRepository):
-    def __init__(self, db: Annotated[Database, Depends(lambda: database())]):
-        self.__pool = db.get_pool()
+    def __init__(self, pool: Pool):
+        self.__pool = pool
 
     async def find(self, username: str):
         async with self.__pool.acquire() as conn:  # type: Connection

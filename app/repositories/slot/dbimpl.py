@@ -1,20 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import Annotated
+from asyncpg import Connection, Pool
 
-from asyncpg import Connection
-from fastapi import Depends
-
-from app.database.interface import Database
-from app.dependencies.config import database
 from app.models.slot_model import Slot
 from app.repositories.slot.interface import SlotRepository
-from app.utils.decorators import singleton
 
 
-@singleton
 class SlotRepositoryImpl(SlotRepository):
-    def __init__(self, db: Annotated[Database, Depends(lambda: database())]):
-        self.__pool = db.get_pool()
+    def __init__(self, pool: Pool):
+        self.__pool = pool
 
     async def find(self):
         async with self.__pool.acquire() as conn:  # type: Connection

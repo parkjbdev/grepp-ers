@@ -16,9 +16,12 @@ from app.controllers.auth import router as auth_controller
 async def lifespan(app: FastAPI):
     load_dotenv()
     from app.dependencies.config import database
-    await database().connect()
+    try:
+        await database.connect()
+    except Exception as e:
+        print(e)
     yield
-    await database().disconnect()
+    await database.disconnect()
 
 
 app = FastAPI(

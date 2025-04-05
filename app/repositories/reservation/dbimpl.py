@@ -1,20 +1,13 @@
-from typing import Annotated
+from asyncpg import Connection, Pool, RaiseError
 
-from asyncpg import Connection, RaiseError
-from fastapi.params import Depends
-
-from app.database.ers_db import Database
-from app.dependencies.config import database
 from app.models.reservation_model import Reservation
 from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.repositories.reservation.interface import ReservationRepository
-from app.utils.decorators import singleton
 
 
-@singleton
 class ReservationRepositoryImpl(ReservationRepository):
-    def __init__(self, db: Annotated[Database, Depends(lambda: database())]):
-        self.__pool = db.get_pool()
+    def __init__(self, pool: Pool):
+        self.__pool = pool
 
     async def find(self):
         async with self.__pool.acquire() as conn:  # type: Connection
