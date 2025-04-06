@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
-from app.models.reservation_model import Reservation
+from app.models.reservation_model import Reservation, ReservationDto
 
 
 class ReservationRepository(ABC):
@@ -20,7 +20,7 @@ class ReservationRepository(ABC):
     async def confirm_by_id(self, reservation_id: int): pass
 
     @abstractmethod
-    async def modify(self, reservation: Reservation, user_id: Optional[int] = None): pass
+    async def modify(self, id: int, reservation: ReservationDto, user_id: Optional[int] = None): pass
 
     @abstractmethod
     async def delete(self, reservation_id: int, user_id: Optional[int] = None): pass

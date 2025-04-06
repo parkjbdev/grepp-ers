@@ -3,7 +3,7 @@ from typing import Optional
 
 from asyncpg import Connection, Pool, PostgresError
 
-from app.models.reservation_model import Reservation
+from app.models.reservation_model import Reservation, ReservationDto
 from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.repositories.reservation.interface import ReservationRepository
 
@@ -40,7 +40,7 @@ class ReservationRepositoryImpl(ReservationRepository):
 
         if start_at is not None and end_at is not None:
             params.extend([start_at, end_at])
-            conditions.append(f"s.time_range && TSRANGE(${len(params) - 1}, ${len(params)})")
+            conditions.append(f"s.time_range && TSTZRANGE(${len(params) - 1}, ${len(params)})")
         elif start_at is not None:
             params.append(start_at)
             conditions.append(f"UPPER(s.time_range) >= ${len(params)}")
@@ -74,9 +74,10 @@ class ReservationRepositoryImpl(ReservationRepository):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
                 res = await conn.execute(
-                    "INSERT INTO reservations(slot_id, user_id, amount) VALUES($1, $2, $3) RETURNING id",
+                    "INSERT INTO reservations(slot_id, user_id, amount) VALUES($1, $2, $3)",
                     reservation.slot_id, reservation.user_id, reservation.amount)
-                return res["id"]
+                affected_rows = int(res.split()[-1])
+                return affected_rows
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException()
@@ -96,19 +97,20 @@ class ReservationRepositoryImpl(ReservationRepository):
                     raise SlotLimitExceededException()
                 raise
 
-    async def modify(self, reservation: Reservation, user_id: Optional[int] = None):
+    async def modify(self, id: int, reservation: ReservationDto, user_id: Optional[int] = None):
+        # TODO: 에러 핸들링 섬세하게... confirmed 여부에 따라 다르게
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
                 if user_id is not None:
                     res = await conn.execute(
                         "UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3 AND user_id = $4 AND confirmed = FALSE",
-                        reservation.amount, reservation.slot_id, reservation.id, user_id)
+                        reservation.amount, reservation.slot_id, id, user_id)
                 else:
                     res = await conn.execute("UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3",
-                                             reservation.amount, reservation.slot_id, reservation.id)
+                                             reservation.amount, reservation.slot_id, id)
                 affected_rows = int(res.split()[-1])
                 if affected_rows == 0:
-                    raise KeyError(f"Reservation not found: {reservation.id}")
+                    raise KeyError(f"Reservation not found: {id}")
                 return affected_rows
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
@@ -118,8 +120,9 @@ class ReservationRepositoryImpl(ReservationRepository):
     async def delete(self, reservation_id: int, user_id: Optional[int] = None):
         async with self.__pool.acquire() as conn:  # type: Connection
             if user_id is not None:
-                res = await conn.execute("DELETE FROM reservations WHERE id = $1 AND user_id = $2 AND confirmed = FALSE", reservation_id,
-                                         user_id)
+                res = await conn.execute(
+                    "DELETE FROM reservations WHERE id = $1 AND user_id = $2 AND confirmed = FALSE", reservation_id,
+                    user_id)
             else:
                 res = await conn.execute("DELETE FROM reservations WHERE id = $1", reservation_id)
 

@@ -1,13 +1,15 @@
 from datetime import UTC, datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from starlette import status
 
 from app.auth.auth_user import get_current_user
 from app.dependencies.config import exam_management_service
-from app.models.reservation_model import Reservation
+from app.models.reservation_model import Reservation, ReservationDto
 from app.models.user_model import User
+from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.services.exam_management_service import ExamManagementService
 
 router = APIRouter(prefix="/users/reservations", tags=["사용자 예약관리"])
@@ -20,8 +22,8 @@ InjectService: ExamManagementService = Depends(exam_management_service)
             description="자신이 예약한 내역을 조회합니다.",
             )
 async def get_my_reservations(
-        start_at: datetime = datetime.now(UTC),
-        end_at: Optional[datetime] = datetime.now(UTC) + timedelta(days=30),
+        start_at: Optional[datetime] = None,
+        end_at: Optional[datetime] = None,
         user: User = Depends(get_current_user),
         service=InjectService
 ):
@@ -37,7 +39,7 @@ async def get_reservation_by_id(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
-    return
+    return await service.find_reservation_by_id(id)
 
 
 class ReservationForm(BaseModel):
@@ -58,7 +60,13 @@ async def submit_new_reservation(
         user_id=user.id,
         amount=reservation.amount
     )
-    await service.add_reservation(res)
+    try:
+        await service.add_reservation(res)
+    except SlotLimitExceededException as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Slot limit exceeded: The slot limit 50000 exceeded"
+        )
     return
 
 
@@ -67,10 +75,22 @@ async def submit_new_reservation(
             description="자신의 예약을 수정합니다. 예약이 확정되기 전에만 수정할 수 있습니다.")
 async def modify_reservation(
         id: int,
+        reservation: ReservationDto,
         user: User = Depends(get_current_user),
         service=InjectService
 ):
-    await service.delete_reservation(id, user.id)
+    try:
+        await service.modify_reservation(id, reservation, user.id)
+    except SlotLimitExceededException as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Slot limit exceeded: The slot limit 50000 exceeded"
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Reservation not found: {id}"
+        )
     return
 
 
@@ -82,5 +102,11 @@ async def remove_reservation_by_id(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
-    await service.delete_reservation(id, user.id)
+    try:
+        await service.delete_reservation(id, user.id)
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Reservation not found: {id}"
+        )
     return

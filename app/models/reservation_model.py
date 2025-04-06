@@ -18,3 +18,8 @@ class Reservation(BaseModel):
         if v < 0:
             raise ValueError('amount must be greater than or equal to 0')
         return v
+
+class ReservationDto(BaseModel):
+    slot_id: int
+    amount: int
+

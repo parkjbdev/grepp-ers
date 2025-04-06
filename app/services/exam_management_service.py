@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fastapi import Depends
 
-from app.models.reservation_model import Reservation
+from app.models.reservation_model import Reservation, ReservationDto
 from app.models.slot_model import SlotWithAmount
 from app.models.slot_reservation_joined_model import ReservationWithSlot
 from app.repositories.reservation.dbimpl import ReservationRepository
@@ -20,10 +20,13 @@ class ExamManagementService(ABC):
     async def find_reservations(self, user_id: int, start_at: datetime = None, end_at: datetime = None): pass
 
     @abstractmethod
+    async def find_reservation_by_id(self, reservation_id: int): pass
+
+    @abstractmethod
     async def add_reservation(self, reservation: Reservation): pass
 
     @abstractmethod
-    async def modify_reservation(self, reservation: Reservation, user_id: int): pass
+    async def modify_reservation(self, id: int, reservation: ReservationDto, user_id: int): pass
 
     @abstractmethod
     async def delete_reservation(self, reservation_id: int, user_id: int): pass
@@ -47,6 +50,10 @@ class ExamManagementServiceImpl(ExamManagementService):
         rows = await self.reservation_repo.find(user_id=user_id, start_at=start_at, end_at=end_at)
         return [ReservationWithSlot(**dict(row)) for row in rows]
 
+    async def find_reservation_by_id(self, reservation_id: int):
+        row = await self.reservation_repo.find_by_id(reservation_id)
+        return ReservationWithSlot(**dict(row)) if row else None
+
     async def add_reservation(self, reservation: Reservation):
         try:
             ret = await self.reservation_repo.insert(reservation)
@@ -58,14 +65,15 @@ class ExamManagementServiceImpl(ExamManagementService):
             )
             raise
 
-    async def modify_reservation(self, reservation: Reservation, user_id: int):
+    async def modify_reservation(self, id: int, reservation: ReservationDto, user_id: int):
+    # async def modify_reservation(self, reservation: Reservation, user_id: int):
         # user can modify only user's own unconfirmed reservation
         try:
-            ret = await self.reservation_repo.modify(reservation, user_id)
+            ret = await self.reservation_repo.modify(id, reservation, user_id)
             if ret is None:
                 raise Exception("Failed to modify reservation.. Is it already confirmed?")
         except KeyError as e:
-            self.__logger.exception(f"Reservation not found: {reservation.id}")
+            self.__logger.exception(f"Reservation not found: {reservation}")
             raise
 
     async def delete_reservation(self, reservation_id: int, user_id: int):
