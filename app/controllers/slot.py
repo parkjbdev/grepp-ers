@@ -1,12 +1,12 @@
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.auth.auth_user import verify_admin
 from app.dependencies.config import admin_exam_management_service, exam_management_service
-from app.models.slot_model import Slot
+from app.models.slot_model import Slot, SlotForResponse
 from app.models.user_model import User
 from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
 from app.services.admin_exam_management_service import AdminExamManagementService
@@ -18,9 +18,9 @@ InjectService: ExamManagementService = Depends(exam_management_service)
 InjectAdminService: AdminExamManagementService = Depends(admin_exam_management_service)
 
 
-@router.get("", status_code=status.HTTP_200_OK)
+@router.get("", status_code=status.HTTP_200_OK, response_model=List[SlotForResponse])
 async def get_available_slots(
-        start_at: datetime = datetime.now(UTC),
+        start_at: Optional[datetime] = datetime.now(UTC),
         end_at: Optional[datetime] = datetime.now(UTC) + timedelta(days=30),
         service=InjectService
 ):

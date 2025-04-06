@@ -13,22 +13,48 @@ class SlotRepositoryImpl(SlotRepository):
         self.__pool = pool
         self.__logger = logging.getLogger(__name__)
 
-    async def find(self):
-        async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.fetch("SELECT * FROM slots")
+    @staticmethod
+    def __base_query():
+        return """
+                SELECT s.id AS id, s.time_range AS time_range, COALESCE(SUM(r.amount), 0) AS amount 
+                FROM slots AS s LEFT JOIN reservations AS r ON r.slot_id = s.id AND r.confirmed = TRUE
+            """
 
-    async def find_by_time_range(self, start_at: datetime, end_at: datetime):
+    async def find(self, start_at: datetime = None, end_at: datetime = None):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.fetch("SELECT * FROM slots WHERE time_range && TSTZRANGE($1, $2)", start_at, end_at)
+            conditions = []
+            params = []
+            if start_at is not None and end_at is not None:
+                params.extend([start_at, end_at])
+                conditions.append(f"s.time_range && TSTZRANGE(${len(params) - 1}, ${len(params)})")
+            elif start_at is not None:
+                params.append(start_at)
+                conditions.append(f"UPPER(s.time_range) >= ${len(params)}")
+            elif end_at is not None:
+                params.append(end_at)
+                conditions.append(f"LOWER(s.time_range) <= ${len(params)}")
+            base_query = self.__base_query()
+            if conditions:
+                base_query += "\nWHERE " + " AND ".join(conditions)
+            base_query += "\nGROUP BY s.id, s.time_range"
+            base_query += "\nORDER BY s.time_range"
+            print(base_query)
+            return await conn.fetch(base_query, *params)
 
     async def find_by_id(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.fetchrow("SELECT * FROM slots WHERE id = $1", slot_id)
+            base_query = self.__base_query()
+            base_query += "WHERE s.id = $1"
+            base_query += "\nGROUP BY s.id, s.time_range"
+            base_query += "\nORDER BY s.time_range"
+            return await conn.fetchrow(base_query, slot_id)
 
     async def insert(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
-                return await conn.execute("INSERT INTO slots(time_range) VALUES($1)", slot.time_range)
+                ret = await conn.execute("INSERT INTO slots(time_range) VALUES($1)", slot.time_range)
+                affected_rows = int(ret.split()[-1])
+                return affected_rows
             except ExclusionViolationError as e:
                 self.__logger.exception(
                     f"Time slot conflict: The time range {slot.time_range} overlaps with an existing slot",
@@ -38,17 +64,13 @@ class SlotRepositoryImpl(SlotRepository):
 
     async def modify(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.execute("UPDATE slots SET(time_range) = ($1) WHERE id = $2", slot.time_range, slot.id)
+            ret = await conn.execute("UPDATE slots SET time_range = $1 WHERE id = $2", slot.time_range,
+                                     slot.id)
+            affected_rows = int(ret.split()[-1])
+            return affected_rows
 
     async def delete(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.execute("DELETE slots WHERE id = $1", slot_id)
-
-    async def count_confirmed_slot(self):
-        async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.fetch("""
-                SELECT s.id AS slot_id, s.time_range, COUNT(CASE WHEN r.confirmed = TRUE THEN r.id ELSE NULL END) AS amount 
-                FROM slots AS s LEFT JOIN reservations AS r ON r.slot_id = s.id
-                GROUP BY s.id, s.time_range
-                ORDER BY s.time_range
-            """)
+            ret = await conn.execute("DELETE FROM slots WHERE id = $1", slot_id)
+            affected_rows = int(ret.split()[-1])
+            return affected_rows
