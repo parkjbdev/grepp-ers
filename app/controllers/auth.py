@@ -3,6 +3,7 @@ import os
 from argon2.exceptions import VerifyMismatchError
 from asyncpg import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel
 
 from app.auth.jwt import JWTUtils
 from app.dependencies.config import auth_service
@@ -16,9 +17,14 @@ router = APIRouter(
 InjectAuthService: AuthService = Depends(auth_service)
 
 
+class UserForm(BaseModel):
+    username: str
+    password: str
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register_user(user: User, service=InjectAuthService):
-    user = User(**user.model_dump(include={"username", "password"}))
+async def register_user(user: UserForm, service=InjectAuthService):
+    user = User(**user.model_dump())
     try:
         await service.add_user(User(**user.model_dump(include={"username", "password"})))
     except UniqueViolationError as e:
@@ -30,7 +36,7 @@ async def register_user(user: User, service=InjectAuthService):
 
 
 @router.post("/token", status_code=status.HTTP_200_OK)
-async def login_user(user: User, response: Response, service=InjectAuthService):
+async def login_user(user: UserForm, response: Response, service=InjectAuthService):
     try:
         user = await service.authenticate_user(user.username, user.password)
         print(user)

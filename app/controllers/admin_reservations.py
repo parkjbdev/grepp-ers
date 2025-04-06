@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.auth_user import verify_admin
 from app.models.reservation_model import Reservation
 from app.models.user_model import User
+from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.services.admin_exam_management_service import AdminExamManagementService
 
 router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"])
@@ -15,20 +16,30 @@ InjectService: AdminExamManagementService = Depends(AdminExamManagementService)
 
 @router.get("",
             summary="회원들의 모든 예약 조회",
-            description="회원들이 예약한 내역을 모두 조회합니다.")
+            description="회원들이 예약한 내역을 모두 조회합니다.",
+            status_code=status.HTTP_200_OK
+            )
 async def get_all_reservations(
-        start_at: Optional[datetime] = None,
-        end_at: Optional[datetime] = None,
+        start_at: Optional[datetime] = datetime.now(UTC),
+        end_at: Optional[datetime] = datetime.now(UTC) + timedelta(days=30),
         user: User = Depends(verify_admin),
         service=InjectService
 ):
-    try:
-        reservations = await service.find_reservations(start_at, end_at)
-        return reservations
-    except Exception as e:
-        raise
+    if start_at is not None:
+        if start_at.tzinfo is None:
+            start_at = start_at.replace(tzinfo=UTC)
+    if end_at is not None:
+        if end_at.tzinfo is None:
+            end_at = end_at.replace(tzinfo=UTC)
 
-    return
+    if start_at is not None and end_at is not None:
+        if start_at > end_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="start_at must be before end_at",
+            )
+
+    return await service.find_reservations(start_at, end_at)
 
 
 @router.patch("/{id}",
@@ -43,14 +54,24 @@ async def confirm_reservation(
 ):
     try:
         await service.confirm_reservation(id)
-    except Exception as e:
-        raise
+    except SlotLimitExceededException as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Slot limit exceeded: The slot limit 50000 exceeded"
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Reservation not found: {id}"
+        )
     return
 
 
 @router.put("/{id}",
             summary="예약 수정",
-            description="예약을 수정합니다.")
+            description="예약을 수정합니다.",
+            status_code=status.HTTP_200_OK
+            )
 async def modify_reservation(
         reservation: Reservation,
         user: User = Depends(verify_admin),
@@ -58,8 +79,16 @@ async def modify_reservation(
 ):
     try:
         await service.modify_reservation(reservation)
-    except Exception as e:
-        raise
+    except SlotLimitExceededException as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Slot limit exceeded: The slot limit 50000 exceeded"
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Reservation not found: {reservation.id}"
+        )
     return
 
 
@@ -73,6 +102,8 @@ async def remove_reservation_by_id(
 ):
     try:
         await service.delete_reservation(id)
-    except Exception as e:
-        raise
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Reservation not found: {id}"
+                            )
     return

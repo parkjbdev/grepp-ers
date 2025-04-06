@@ -1,27 +1,31 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from app.auth.auth_user import get_current_user
+from app.dependencies.config import exam_management_service
+from app.models.reservation_model import Reservation
 from app.models.user_model import User
-from app.services.exam_management_service import ExamManagementService, ExamManagementServiceImpl
+from app.services.exam_management_service import ExamManagementService
 
 router = APIRouter(prefix="/users/reservations", tags=["사용자 예약관리"])
 
-InjectService: ExamManagementService = Depends(ExamManagementServiceImpl)
+InjectService: ExamManagementService = Depends(exam_management_service)
 
 
 @router.get("",
             summary="자신의 예약 조회",
-            description="자신이 예약한 내역을 조회합니다.")
+            description="자신이 예약한 내역을 조회합니다.",
+            )
 async def get_my_reservations(
-        start_at: int = datetime.now(),
-        end_at: Optional[int] = None,
+        start_at: datetime = datetime.now(UTC),
+        end_at: Optional[datetime] = datetime.now(UTC) + timedelta(days=30),
         user: User = Depends(get_current_user),
         service=InjectService
 ):
-    return
+    return await service.find_reservations(user_id=user.id, start_at=start_at, end_at=end_at)
 
 
 @router.get("/{id}",
@@ -36,13 +40,25 @@ async def get_reservation_by_id(
     return
 
 
+class ReservationForm(BaseModel):
+    slot_id: int
+    amount: int
+
+
 @router.post("",
              summary="새로운 예약 신청",
              description="새로운 예약을 신청합니다.")
 async def submit_new_reservation(
+        reservation: ReservationForm,
         user: User = Depends(get_current_user),
         service=InjectService
 ):
+    res = Reservation(
+        slot_id=reservation.slot_id,
+        user_id=user.id,
+        amount=reservation.amount
+    )
+    await service.add_reservation(res)
     return
 
 
@@ -54,6 +70,7 @@ async def modify_reservation(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
+    await service.delete_reservation(id, user.id)
     return
 
 
@@ -65,4 +82,5 @@ async def remove_reservation_by_id(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
+    await service.delete_reservation(id, user.id)
     return
