@@ -4,10 +4,10 @@ from argon2.exceptions import VerifyMismatchError
 from asyncpg import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.auth.jwt import JWTUtils
 from app.dependencies.config import auth_service
 from app.models.user_model import User
 from app.services.auth_service import AuthService, UserNotFoundException
-from app.utils.jwt import JWTUtils
 
 router = APIRouter(
     prefix="/auth",
@@ -44,9 +44,9 @@ async def login_user(user: User, response: Response, service=InjectAuthService):
         response.set_cookie(
             key="access_token",
             value=access_token,
-            httponly=True,  # JavaScript에서 쿠키에 접근할 수 없게 함
+            httponly=True,
             secure=True if os.getenv("ENVIRONMENT") == "PRODUCTION" else False,
-            samesite="lax",  # CSRF 공격 방지에 도움
+            samesite="lax",
             max_age=int(os.getenv("JWT_EXPIRES_SEC")),
         )
 
