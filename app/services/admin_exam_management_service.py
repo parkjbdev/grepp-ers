@@ -5,7 +5,7 @@ from typing import Optional
 
 from asyncpg import ExclusionViolationError
 
-from app.models.reservation_model import Reservation
+from app.models.reservation_model import Reservation, ReservationDto
 from app.models.slot_model import Slot
 from app.models.slot_reservation_joined_model import ReservationWithSlot
 from app.repositories.reservation.dbimpl import ReservationRepository
@@ -21,7 +21,7 @@ class AdminExamManagementService(ABC):
     async def find_reservations(self, start_at: Optional[datetime], end_at: Optional[datetime]): pass
 
     @abstractmethod
-    async def modify_reservation(self, reservation: Reservation): pass
+    async def modify_reservation(self, id: int, reservation: ReservationDto): pass
 
     @abstractmethod
     async def delete_reservation(self, reservation_id: int): pass
@@ -48,10 +48,10 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         rows = await self.reservation_repo.find(start_at=start_at, end_at=end_at)
         return [ReservationWithSlot(**dict(row)) for row in rows]
 
-    async def modify_reservation(self, reservation: Reservation):
+    async def modify_reservation(self, id: int, reservation: ReservationDto):
         # admin can modify both confirmed/unconfirmed reservation
         try:
-            await self.reservation_repo.modify(reservation)
+            await self.reservation_repo.modify(id, reservation)
         except SlotLimitExceededException as e:
             self.__logger.exception(
                 f"Slot limit exceeded: The time slot {reservation.slot_id} has reached its maximum capacity")

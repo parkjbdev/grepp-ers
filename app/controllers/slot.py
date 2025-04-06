@@ -30,11 +30,12 @@ async def get_available_slots(
         if end_at and end_at.tzinfo is None:
             end_at = end_at.replace(tzinfo=timezone.utc)
 
-        if start_at and end_at and start_at > end_at:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="start_at must be before end_at",
-            )
+        if start_at is not None and end_at is not None:
+            if start_at > end_at:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="start_at must be before end_at",
+                )
         rows = await service.find_slots(start_at, end_at)
         return list(map(lambda x: SlotForResponse.from_slot_with_amount(x), rows))
     except ValueError as e:

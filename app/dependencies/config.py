@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from functools import lru_cache
+# To Prevent Circular Import Problem
+from typing import Annotated, TYPE_CHECKING
 
 from asyncpg import Pool
 from fastapi import Depends
 
 from app.database import ers_db
-
-# To Prevent Circular Import Problem
-from typing import Annotated, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.repositories.reservation.dbimpl import ReservationRepository

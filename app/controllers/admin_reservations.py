@@ -4,14 +4,15 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.auth_user import verify_admin
-from app.models.reservation_model import Reservation
+from app.dependencies.config import admin_exam_management_service
+from app.models.reservation_model import Reservation, ReservationDto
 from app.models.user_model import User
 from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.services.admin_exam_management_service import AdminExamManagementService
 
 router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"])
 
-InjectService: AdminExamManagementService = Depends(AdminExamManagementService)
+InjectService: AdminExamManagementService = Depends(admin_exam_management_service)
 
 
 @router.get("",
@@ -20,15 +21,15 @@ InjectService: AdminExamManagementService = Depends(AdminExamManagementService)
             status_code=status.HTTP_200_OK
             )
 async def get_all_reservations(
-        start_at: Optional[datetime] = datetime.now(UTC),
-        end_at: Optional[datetime] = datetime.now(UTC) + timedelta(days=30),
+        start_at: Optional[datetime] = None,
+        end_at: Optional[datetime] = None,
         user: User = Depends(verify_admin),
         service=InjectService
 ):
-    if start_at is not None:
+    if start_at and start_at is not None:
         if start_at.tzinfo is None:
             start_at = start_at.replace(tzinfo=UTC)
-    if end_at is not None:
+    if end_at and end_at is not None:
         if end_at.tzinfo is None:
             end_at = end_at.replace(tzinfo=UTC)
 
@@ -73,12 +74,13 @@ async def confirm_reservation(
             status_code=status.HTTP_200_OK
             )
 async def modify_reservation(
-        reservation: Reservation,
+        id: int,
+        reservation: ReservationDto,
         user: User = Depends(verify_admin),
         service=InjectService
 ):
     try:
-        await service.modify_reservation(reservation)
+        await service.modify_reservation(id, reservation)
     except SlotLimitExceededException as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
