@@ -47,3 +47,16 @@ class SlotForResponse(BaseModel):
     id: int
     time_range: _TimeRangeSchema
     amount: int
+
+    @classmethod
+    def from_slot_with_amount(cls, slot_with_amount: SlotWithAmount):
+        return cls(
+            id=slot_with_amount.id,
+            time_range=_TimeRangeSchema(
+                start=slot_with_amount.time_range.lower,
+                end=slot_with_amount.time_range.upper,
+                start_inclusive=slot_with_amount.time_range.lower_inc,
+                end_inclusive=slot_with_amount.time_range.upper_inc,
+            ),
+            amount=slot_with_amount.amount
+        )
