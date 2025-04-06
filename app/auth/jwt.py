@@ -17,7 +17,7 @@ class JWTUtils:
         to_encode = user.model_dump(include={"username", "admin"}).copy()
         expire = datetime.now(UTC) + expires_delta
         to_encode.update({
-            "sub": user.username,
+            "sub": f"{user.id}",
             "exp": expire,
             "iat": datetime.now(UTC)
         })
@@ -32,6 +32,7 @@ class JWTUtils:
         )
         try:
             payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=os.getenv("JWT_ALGORITHM", "HS256"))
+            id: int = int(payload.get("sub"))
             username: str = payload.get("username")
             admin: bool = payload.get("admin", False)
             if username is None:
@@ -39,4 +40,4 @@ class JWTUtils:
         except JWTError:
             raise credentials_exception
 
-        return User(username=username, admin=admin)
+        return User(id=id, username=username, admin=admin)
