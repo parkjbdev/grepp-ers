@@ -26,11 +26,6 @@ async def register_user(user: User, service=InjectAuthService):
             status_code=status.HTTP_409_CONFLICT,
             detail="User already exists",
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
-        )
     return
 
 
@@ -59,12 +54,6 @@ async def login_user(user: User, response: Response, service=InjectAuthService):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {e.username} not found",
-        )
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
         )
 
     return user.model_dump(include={"username", "admin"})

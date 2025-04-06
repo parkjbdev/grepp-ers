@@ -1,9 +1,8 @@
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from starlette import status
-from starlette.responses import RedirectResponse
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.controllers.admin_reservations import router as admin_controller
 from app.controllers.auth import router as auth_controller
@@ -30,10 +29,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(reservation_controller)
 app.include_router(admin_controller)
-app.include_router(slot_controller)
 app.include_router(auth_controller)
+app.include_router(slot_controller)
+app.include_router(reservation_controller)
 
 
 @app.get("/",
@@ -42,3 +41,11 @@ app.include_router(auth_controller)
          status_code=301)
 async def root():
     return RedirectResponse(url="/redoc", status_code=status.HTTP_301_MOVED_PERMANENTLY)
+
+
+@app.exception_handler(Exception)
+async def exception_handler(request, exc):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"}
+    )
