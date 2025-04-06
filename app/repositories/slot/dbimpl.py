@@ -1,14 +1,17 @@
+import logging
 from datetime import datetime
 
-from asyncpg import Connection, Pool
+from asyncpg import Connection, ExclusionViolationError, Pool
 
 from app.models.slot_model import Slot
+from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
 from app.repositories.slot.interface import SlotRepository
 
 
 class SlotRepositoryImpl(SlotRepository):
     def __init__(self, pool: Pool):
         self.__pool = pool
+        self.__logger = logging.getLogger(__name__)
 
     async def find(self):
         async with self.__pool.acquire() as conn:  # type: Connection
@@ -16,7 +19,7 @@ class SlotRepositoryImpl(SlotRepository):
 
     async def find_by_time_range(self, start_at: datetime, end_at: datetime):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.fetch("SELECT * FROM slots WHERE time_range && TSRANGE($1, $2)", start_at, end_at)
+            return await conn.fetch("SELECT * FROM slots WHERE time_range && TSTZRANGE($1, $2)", start_at, end_at)
 
     async def find_by_id(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
@@ -24,7 +27,14 @@ class SlotRepositoryImpl(SlotRepository):
 
     async def insert(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
-            return await conn.execute("INSERT INTO slots(time_range) VALUES($1)", slot.time_range)
+            try:
+                return await conn.execute("INSERT INTO slots(time_range) VALUES($1)", slot.time_range)
+            except ExclusionViolationError as e:
+                self.__logger.exception(
+                    f"Time slot conflict: The time range {slot.time_range} overlaps with an existing slot",
+                    exc_info=False
+                )
+                raise SlotTimeRangeOverlapped(slot.time_range)
 
     async def modify(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection

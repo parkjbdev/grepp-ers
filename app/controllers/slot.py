@@ -2,11 +2,13 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from app.auth.auth_user import verify_admin
 from app.dependencies.config import admin_exam_management_service, exam_management_service
 from app.models.slot_model import Slot
 from app.models.user_model import User
+from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
 from app.services.admin_exam_management_service import AdminExamManagementService
 from app.services.exam_management_service import ExamManagementService
 
@@ -33,7 +35,6 @@ async def get_available_slots(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="start_at must be before end_at",
             )
-
         return await service.find_slots(start_at, end_at)
     except ValueError as e:
         raise HTTPException(
@@ -47,14 +48,24 @@ async def get_available_slots(
         )
 
 
+class SlotForm(BaseModel):
+    start_at: datetime
+    end_at: datetime
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def add_new_slot(
-        slot: Slot,
+        slot: SlotForm,
         user: User = Depends(verify_admin),
         service=InjectAdminService
 ):
     try:
-        await service.add_exam_slot(slot)
-    except Exception as e:
-        raise
+        await service.add_exam_slot(
+            Slot.create_with_time_range(start_time=slot.start_at, end_time=slot.end_at)
+        )
+    except SlotTimeRangeOverlapped as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Slot already exists",
+        )
     return
