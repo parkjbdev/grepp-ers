@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from asyncpg import Connection, Pool
 
 from app.models.slot_model import Slot
@@ -11,6 +13,10 @@ class SlotRepositoryImpl(SlotRepository):
     async def find(self):
         async with self.__pool.acquire() as conn:  # type: Connection
             return await conn.fetch("SELECT * FROM slots")
+
+    async def find_by_time_range(self, start_at: datetime, end_at: datetime):
+        async with self.__pool.acquire() as conn:  # type: Connection
+            return await conn.fetch("SELECT * FROM slots WHERE time_range && TSRANGE($1, $2)", start_at, end_at)
 
     async def find_by_id(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
