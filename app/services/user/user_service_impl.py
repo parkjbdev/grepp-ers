@@ -56,10 +56,8 @@ class ExamManagementServiceImpl(ExamManagementService):
                 self.__logger.exception("Failed to insert reservation.")
                 raise DBUnknownException()
         except SlotLimitExceededException as e:
-            self.__logger.exception(str(e))
             raise DBConflictException(str(e))
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
             raise DBUnknownException()
 
     async def modify_reservation(self, id: int, reservation: ReservationDto, user_id: int):
@@ -68,13 +66,10 @@ class ExamManagementServiceImpl(ExamManagementService):
         try:
             await self.reservation_repo.modify_unconfirmed(id, reservation, user_id)
         except NoSuchReservationException as e:
-            self.__logger.exception(str(e))
             raise NotFoundException(str(e))
         except (SlotLimitExceededException, ReservationAlreadyConfirmedException, UserMismatchException) as e:
-            self.__logger.exception(str(e))
             raise DBConflictException(str(e))
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
             raise DBUnknownException()
 
     async def delete_reservation(self, reservation_id: int, user_id: int):
@@ -82,11 +77,8 @@ class ExamManagementServiceImpl(ExamManagementService):
         try:
             await self.reservation_repo.delete_unconfirmed(reservation_id, user_id)
         except NoSuchReservationException as e:
-            self.__logger.exception(str(e))
             raise NotFoundException(str(e))
         except (SlotLimitExceededException, ReservationAlreadyConfirmedException, UserMismatchException) as e:
-            self.__logger.exception(str(e))
             raise DBConflictException(str(e))
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
             raise DBUnknownException()

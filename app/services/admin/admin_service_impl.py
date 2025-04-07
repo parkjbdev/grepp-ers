@@ -1,9 +1,8 @@
 import logging
-from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
-from asyncpg import ExclusionViolationError, PostgresError
+from asyncpg import PostgresError
 
 from app.models.reservation_model import ReservationDto
 from app.models.slot_model import Slot
@@ -29,8 +28,6 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
                 self.__logger.exception("Failed to insert slot.")
                 raise DBUnknownException()
         except SlotTimeRangeOverlapped as e:
-            self.__logger.exception(
-                f"Time slot conflict: The time range {slot.time_range} overlaps with an existing slot")
             raise DBConflictException(str(e))
         except PostgresError as e:
             raise DBUnknownException()
@@ -47,11 +44,8 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         try:
             await self.reservation_repo.modify_from_admin(id, reservation)
         except NoSuchReservationException as e:
-            self.__logger.exception(f"Reservation with ID {id} not found.")
             raise NotFoundException(str(e))
         except SlotLimitExceededException as e:
-            self.__logger.exception(
-                f"Slot limit exceeded: The time slot {reservation.slot_id} has reached its maximum capacity")
             raise DBConflictException(str(e))
         except PostgresError as e:
             raise DBUnknownException()
@@ -61,7 +55,6 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         try:
             await self.reservation_repo.delete_from_admin(reservation_id)
         except NoSuchReservationException as e:
-            self.__logger.exception(f"Reservation with ID {reservation_id} not found.")
             raise NotFoundException(str(e))
         except PostgresError as e:
             raise DBUnknownException()
@@ -71,8 +64,6 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         try:
             await self.reservation_repo.confirm_by_id(reservation_id)
         except SlotLimitExceededException as e:
-            self.__logger.exception(
-                f"Slot limit exceeded: The time slot {reservation_id} has reached its maximum capacity")
-            raise
+            raise DBConflictException(str(e))
         except PostgresError as e:
             raise DBUnknownException()
