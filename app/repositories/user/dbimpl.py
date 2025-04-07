@@ -22,8 +22,6 @@ class UserRepositoryImpl(UserRepository):
                     ret_id = await conn.fetchrow("INSERT INTO users(username, password) VALUES($1, $2) RETURNING id",
                                                  username,
                                                  hashed_password)
-                    if ret_id is None:
-                        raise UserNameAlreadyExistsException(username)
                     return ret_id
             except UniqueViolationError as e:
                 raise UserNameAlreadyExistsException(username)
@@ -44,9 +42,9 @@ class UserRepositoryImpl(UserRepository):
                 raise NoSuchUserException(f"username = {username}")
             return ret_id
 
-    async def delete(self, userid: int):
+    async def delete(self, username: str):
         async with self.__pool.acquire() as conn:  # type: Connection
-            ret_id = await conn.fetchrow("DELETE FROM users WHERE id = $1 RETURNING id", userid)
+            ret_id = await conn.fetchrow("DELETE FROM users WHERE username = $1 RETURNING id", username)
             if ret_id is None:
-                raise NoSuchUserException(f"id = {userid}")
+                raise NoSuchUserException(f"username = {username}")
             return ret_id

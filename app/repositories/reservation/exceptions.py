@@ -2,8 +2,8 @@ from app.repositories.exception import NoSuchElementException
 
 
 class SlotLimitExceededException(Exception):
-    def __init__(self, message="The maximum number of slots for this time period has been exceeded"):
-        self.message = message
+    def __init__(self):
+        self.message = "The maximum number of slots for this time period has been exceeded"
         super().__init__(self.message)
 
 

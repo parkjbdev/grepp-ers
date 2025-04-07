@@ -4,3 +4,6 @@ class NoSuchElementException(Exception):
         self.condition = condition
         self.message = f"{elem_name} with {condition} does not exist"
         super().__init__(self.message)
+
+    def __str__(self):
+        return f"{self.elem_name} with {self.condition} does not exist"

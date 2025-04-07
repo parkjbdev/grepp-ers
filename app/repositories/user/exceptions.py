@@ -3,9 +3,11 @@ from app.repositories.exception import NoSuchElementException
 
 class UserNameAlreadyExistsException(Exception):
     def __init__(self, username: str):
-        self.username = username
         self.message = f"User with username {username} already exists"
         super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
 
 
 class NoSuchUserException(NoSuchElementException):

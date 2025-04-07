@@ -85,8 +85,6 @@ class ReservationRepositoryImpl(ReservationRepository):
                 raise
 
     async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
-        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
-        # RETURNING 이용해서, 기존 값을 확인할 순 없나?
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
                 ret = await conn.fetchrow(
@@ -128,7 +126,6 @@ class ReservationRepositoryImpl(ReservationRepository):
                 raise
 
     async def delete_unconfirmed(self, reservation_id: int, user_id: int):
-        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
         async with self.__pool.acquire() as conn:  # type: Connection
             ret = await conn.fetchrow(
                 """
