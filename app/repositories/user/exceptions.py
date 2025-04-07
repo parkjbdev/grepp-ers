@@ -1,3 +1,6 @@
+from app.repositories.exception import NoSuchElementException
+
+
 class UserNameAlreadyExistsException(Exception):
     def __init__(self, username: str):
         self.username = username
@@ -5,10 +8,6 @@ class UserNameAlreadyExistsException(Exception):
         super().__init__(self.message)
 
 
-class NoSuchUserException(Exception):
+class NoSuchUserException(NoSuchElementException):
     def __init__(self, condition: str):
-        self.condition = condition
-        self.message = f"User with {condition} does not exist"
-        super().__init__(self.message)
-
-
+        super().__init__(elem_name="User", condition=condition)

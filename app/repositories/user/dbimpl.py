@@ -10,13 +10,10 @@ class UserRepositoryImpl(UserRepository):
 
     async def find(self, username: str):
         async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                user = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
-                if user is None:
-                    raise NoSuchUserException(f"username = {username}")
-                return user
-            except PostgresError as e:
-                raise
+            user = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
+            if user is None:
+                raise NoSuchUserException(f"username = {username}")
+            return user
 
     async def insert(self, username, hashed_password):
         async with self.__pool.acquire() as conn:  # type: Connection
@@ -30,37 +27,26 @@ class UserRepositoryImpl(UserRepository):
                     return ret_id
             except UniqueViolationError as e:
                 raise UserNameAlreadyExistsException(username)
-            except PostgresError as e:
-                raise
 
     async def update_password(self, username: str, password: str):
         async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                ret_id = await conn.fetchrow("UPDATE users SET password = $1 WHERE username = $2 RETURNING id",
-                                             password,
-                                             username)
-                if ret_id is None:
-                    raise NoSuchUserException(f"username = {username}")
-                return ret_id
-            except PostgresError as e:
-                raise
+            ret_id = await conn.fetchrow("UPDATE users SET password = $1 WHERE username = $2 RETURNING id",
+                                         password,
+                                         username)
+            if ret_id is None:
+                raise NoSuchUserException(f"username = {username}")
+            return ret_id
 
     async def delete_by_username(self, username: str):
         async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                ret_id = await conn.fetchrow("DELETE FROM users WHERE username = $1 RETURNING id", username)
-                if ret_id is None:
-                    raise NoSuchUserException(f"username = {username}")
-                return ret_id
-            except PostgresError as e:
-                raise
+            ret_id = await conn.fetchrow("DELETE FROM users WHERE username = $1 RETURNING id", username)
+            if ret_id is None:
+                raise NoSuchUserException(f"username = {username}")
+            return ret_id
 
     async def delete(self, userid: int):
         async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                ret_id = await conn.fetchrow("DELETE FROM users WHERE id = $1 RETURNING id", userid)
-                if ret_id is None:
-                    raise NoSuchUserException(f"id = {userid}")
-                return ret_id
-            except PostgresError as e:
-                raise
+            ret_id = await conn.fetchrow("DELETE FROM users WHERE id = $1 RETURNING id", userid)
+            if ret_id is None:
+                raise NoSuchUserException(f"id = {userid}")
+            return ret_id
