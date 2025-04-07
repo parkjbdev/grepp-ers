@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime
 
-from asyncpg import Connection, ExclusionViolationError, Pool
+from asyncpg import Connection, ExclusionViolationError, Pool, PostgresError
 
 from app.models.slot_model import Slot
-from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
+from app.repositories.slot.exceptions import NoSuchSlotException, SlotTimeRangeOverlapped
 from app.repositories.slot.interface import SlotRepository
 
 
@@ -38,7 +38,7 @@ class SlotRepositoryImpl(SlotRepository):
                 base_query += "\nWHERE " + " AND ".join(conditions)
             base_query += "\nGROUP BY s.id, s.time_range"
             base_query += "\nORDER BY s.time_range"
-            print(base_query)
+
             return await conn.fetch(base_query, *params)
 
     async def find_by_id(self, slot_id: int):
@@ -47,14 +47,16 @@ class SlotRepositoryImpl(SlotRepository):
             base_query += "WHERE s.id = $1"
             base_query += "\nGROUP BY s.id, s.time_range"
             base_query += "\nORDER BY s.time_range"
-            return await conn.fetchrow(base_query, slot_id)
+
+            ret = await conn.fetchrow(base_query, slot_id)
+            if ret is None:
+                self.__logger.exception(f"Slot with ID {slot_id} not found.")
+                raise NoSuchSlotException(slot_id)
 
     async def insert(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
-                ret = await conn.execute("INSERT INTO slots(time_range) VALUES($1)", slot.time_range)
-                affected_rows = int(ret.split()[-1])
-                return affected_rows
+                return await conn.fetchrow("INSERT INTO slots(time_range) VALUES($1) RETURNING id", slot.time_range)
             except ExclusionViolationError as e:
                 self.__logger.exception(
                     f"Time slot conflict: The time range {slot.time_range} overlaps with an existing slot",
@@ -64,13 +66,17 @@ class SlotRepositoryImpl(SlotRepository):
 
     async def modify(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
-            ret = await conn.execute("UPDATE slots SET time_range = $1 WHERE id = $2", slot.time_range,
-                                     slot.id)
-            affected_rows = int(ret.split()[-1])
-            return affected_rows
+            ret = await conn.fetchrow("UPDATE slots SET time_range = $1 WHERE id = $2 RETURNING id", slot.time_range,
+                                      slot.id)
+            if ret is None:
+                self.__logger.exception(f"Slot with ID {slot.id} not found.")
+                raise NoSuchSlotException(slot.id)
+            return ret
 
     async def delete(self, slot_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
-            ret = await conn.execute("DELETE FROM slots WHERE id = $1", slot_id)
-            affected_rows = int(ret.split()[-1])
-            return affected_rows
+            ret = await conn.fetchrow("DELETE FROM slots WHERE id = $1 RETURNING id", slot_id)
+            if ret is None:
+                self.__logger.exception(f"Slot with ID {slot_id} not found.")
+                raise NoSuchSlotException(slot_id)
+            return ret
