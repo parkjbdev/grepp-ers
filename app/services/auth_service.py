@@ -42,6 +42,8 @@ class AuthServiceImpl(AuthService):
 
     async def authenticate_user(self, username: str, password: str):
         user = await self.repo.find(username)
+        user = User(**dict(user))
+
         if user is None:
             raise UserNotFoundException(username)
 

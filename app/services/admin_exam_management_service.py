@@ -5,7 +5,7 @@ from typing import Optional
 
 from asyncpg import ExclusionViolationError
 
-from app.models.reservation_model import Reservation, ReservationDto
+from app.models.reservation_model import ReservationDto
 from app.models.slot_model import Slot
 from app.models.slot_reservation_joined_model import ReservationWithSlot
 from app.repositories.reservation.dbimpl import ReservationRepository
