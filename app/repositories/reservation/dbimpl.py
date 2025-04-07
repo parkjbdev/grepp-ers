@@ -4,7 +4,8 @@ from typing import Optional
 from asyncpg import Connection, Pool, PostgresError
 
 from app.models.reservation_model import Reservation, ReservationDto
-from app.repositories.reservation.exceptions import NoSuchReservationException, SlotLimitExceededException
+from app.repositories.reservation.exceptions import NoSuchReservationException, ReservationAlreadyConfirmedException, \
+    SlotLimitExceededException, UserMismatchException
 from app.repositories.reservation.interface import ReservationRepository
 
 
@@ -83,6 +84,79 @@ class ReservationRepositoryImpl(ReservationRepository):
                     raise SlotLimitExceededException()
                 raise
 
+    async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
+        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
+        # RETURNING 이용해서, 기존 값을 확인할 순 없나?
+        async with self.__pool.acquire() as conn:  # type: Connection
+            try:
+                ret = await conn.fetchrow(
+                    """
+                    WITH target AS (
+                        SELECT * FROM reservations WHERE id = $1
+                    ), updated AS (
+                        UPDATE reservations r
+                        SET (amount, slot_id) = ($3, $4)
+                        FROM target
+                        WHERE r.id = target.id AND r.user_id = $2 AND r.confirmed = FALSE
+                        RETURNING r.id
+                    )
+                    SELECT 
+                    COALESCE(u.id, t.id) AS id,
+                    CASE
+                        WHEN t.user_id != $2 THEN 'user_mismatch'
+                        WHEN t.confirmed = TRUE THEN 'already_confirmed'
+                        ELSE 'updated'
+                    END AS status
+                    FROM target t
+                    LEFT JOIN updated u ON t.id = u.id
+                    """, reservation_id, user_id, reservation.amount, reservation.slot_id)
+
+                # response: id, status
+                if ret is None:
+                    raise NoSuchReservationException(reservation_id)
+                elif ret["status"] == "already_confirmed":
+                    raise ReservationAlreadyConfirmedException(reservation_id)
+                elif ret["status"] == "user_mismatch":
+                    raise UserMismatchException(user_id)
+
+                if ret is None:
+                    raise NoSuchReservationException(reservation_id)
+                return ret
+            except PostgresError as e:
+                if "SlotLimitExceeded" in str(e):
+                    raise SlotLimitExceededException()
+                raise
+
+    async def delete_unconfirmed(self, reservation_id: int, user_id: int):
+        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
+        async with self.__pool.acquire() as conn:  # type: Connection
+            ret = await conn.fetchrow(
+                """
+                    WITH target AS (
+                        SELECT * FROM reservations WHERE id = $1
+                    ), deleted AS (
+                        DELETE FROM reservations r
+                        WHERE r.id = target.id AND r.user_id = $2 AND r.confirmed = FALSE
+                        RETURNING r.id
+                    )
+                    SELECT 
+                    COALESCE(d.id, t.id) AS id,
+                    CASE
+                        WHEN t.user_id != $2 THEN 'user_mismatch'
+                        WHEN t.confirmed = TRUE THEN 'already_confirmed'
+                        ELSE 'deleted'
+                    END AS status
+                    FROM target t
+                    LEFT JOIN deleted d ON t.id = d.id
+                """,
+                reservation_id, user_id)
+            if ret is None:
+                raise NoSuchReservationException(reservation_id)
+            elif ret["status"] == "already_confirmed":
+                raise ReservationAlreadyConfirmedException(reservation_id)
+            elif ret["status"] == "user_mismatch":
+                raise UserMismatchException(user_id)
+
     # Only for admin
     async def confirm_by_id(self, reservation_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
@@ -111,34 +185,9 @@ class ReservationRepositoryImpl(ReservationRepository):
                     raise SlotLimitExceededException()
                 raise
 
-    async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
-        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
-        async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                ret = await conn.fetchrow(
-                    "UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3 AND user_id = $4 AND confirmed = FALSE RETURNING id",
-                    reservation.amount, reservation.slot_id, reservation_id, user_id)
-                if ret is None:
-                    raise NoSuchReservationException(reservation_id)
-                return ret
-            except PostgresError as e:
-                if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException()
-                raise
-
     async def delete_from_admin(self, reservation_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
             ret = await conn.fetchrow("DELETE FROM reservations WHERE id = $1 RETURNING id", reservation_id)
             if ret is None:
                 raise NoSuchReservationException(reservation_id)
             return ret
-
-    async def delete_unconfirmed(self, reservation_id: int, user_id: int):
-        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
-        async with self.__pool.acquire() as conn:  # type: Connection
-            ret = await conn.fetchrow(
-                "DELETE FROM reservations WHERE id = $1 AND user_id = $2 AND confirmed = FALSE RETURNING id",
-                reservation_id,
-                user_id)
-            if ret is None:
-                raise NoSuchReservationException(reservation_id)
