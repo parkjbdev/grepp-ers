@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,8 +9,8 @@ from app.dependencies.config import admin_exam_management_service, exam_manageme
 from app.models.slot_model import Slot, SlotForResponse
 from app.models.user_model import User
 from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
-from app.services.admin_exam_management_service import AdminExamManagementService
-from app.services.exam_management_service import ExamManagementService
+from app.services.admin.admin_service_impl import AdminExamManagementService
+from app.services.user.user_service_impl import ExamManagementService
 
 router = APIRouter(prefix="/slots", tags=["Slots"])
 

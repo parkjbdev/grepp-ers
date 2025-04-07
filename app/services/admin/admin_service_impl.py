@@ -12,24 +12,8 @@ from app.repositories.reservation.dbimpl import ReservationRepository
 from app.repositories.reservation.exceptions import NoSuchReservationException, SlotLimitExceededException
 from app.repositories.slot.dbimpl import SlotRepository
 from app.repositories.slot.exceptions import SlotTimeRangeOverlapped
+from app.services.admin.interface import AdminExamManagementService
 from app.services.exceptions import DBConflictException, DBUnknownException, NotFoundException
-
-
-class AdminExamManagementService(ABC):
-    @abstractmethod
-    async def add_exam_slot(self, slot: Slot): pass
-
-    @abstractmethod
-    async def find_reservations(self, start_at: Optional[datetime], end_at: Optional[datetime]): pass
-
-    @abstractmethod
-    async def modify_reservation(self, id: int, reservation: ReservationDto): pass
-
-    @abstractmethod
-    async def delete_reservation(self, reservation_id: int): pass
-
-    @abstractmethod
-    async def confirm_reservation(self, reservation_id: int): pass
 
 
 class AdminExamManagementServiceImpl(AdminExamManagementService):

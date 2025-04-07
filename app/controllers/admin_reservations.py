@@ -1,14 +1,14 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.auth_user import verify_admin
 from app.dependencies.config import admin_exam_management_service
-from app.models.reservation_model import Reservation, ReservationDto
+from app.models.reservation_model import ReservationDto
 from app.models.user_model import User
 from app.repositories.reservation.exceptions import SlotLimitExceededException
-from app.services.admin_exam_management_service import AdminExamManagementService
+from app.services.admin.admin_service_impl import AdminExamManagementService
 
 router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"])
 

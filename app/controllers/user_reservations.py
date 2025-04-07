@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,7 +10,7 @@ from app.dependencies.config import exam_management_service
 from app.models.reservation_model import Reservation, ReservationDto
 from app.models.user_model import User
 from app.repositories.reservation.exceptions import SlotLimitExceededException
-from app.services.exam_management_service import ExamManagementService
+from app.services.user.user_service_impl import ExamManagementService
 
 router = APIRouter(prefix="/users/reservations", tags=["사용자 예약관리"])
 

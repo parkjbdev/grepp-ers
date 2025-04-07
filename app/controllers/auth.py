@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.auth.jwt import JWTUtils
 from app.dependencies.config import auth_service
 from app.models.user_model import User
-from app.services.auth_service import AuthService, UserNotFoundException
+from app.services.auth.auth_service_impl import AuthService, UserNotFoundException
 
 router = APIRouter(
     prefix="/auth",
