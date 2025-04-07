@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 
 from asyncpg import Connection, ExclusionViolationError, Pool, PostgresError
@@ -11,7 +10,6 @@ from app.repositories.slot.interface import SlotRepository
 class SlotRepositoryImpl(SlotRepository):
     def __init__(self, pool: Pool):
         self.__pool = pool
-        self.__logger = logging.getLogger(__name__)
 
     @staticmethod
     def __base_query():
@@ -50,7 +48,6 @@ class SlotRepositoryImpl(SlotRepository):
 
             ret = await conn.fetchrow(base_query, slot_id)
             if ret is None:
-                self.__logger.exception(f"Slot with ID {slot_id} not found.")
                 raise NoSuchSlotException(slot_id)
 
     async def insert(self, slot: Slot):
@@ -58,18 +55,13 @@ class SlotRepositoryImpl(SlotRepository):
             try:
                 return await conn.fetchrow("INSERT INTO slots(time_range) VALUES($1) RETURNING id", slot.time_range)
             except ExclusionViolationError as e:
-                self.__logger.exception(
-                    f"Time slot conflict: The time range {slot.time_range} overlaps with an existing slot",
-                    exc_info=False
-                )
-                raise SlotTimeRangeOverlapped(slot.time_range)
+                raise SlotTimeRangeOverlapped(slot.time_range) from None
 
     async def modify(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
             ret = await conn.fetchrow("UPDATE slots SET time_range = $1 WHERE id = $2 RETURNING id", slot.time_range,
                                       slot.id)
             if ret is None:
-                self.__logger.exception(f"Slot with ID {slot.id} not found.")
                 raise NoSuchSlotException(slot.id)
             return ret
 
@@ -77,6 +69,5 @@ class SlotRepositoryImpl(SlotRepository):
         async with self.__pool.acquire() as conn:  # type: Connection
             ret = await conn.fetchrow("DELETE FROM slots WHERE id = $1 RETURNING id", slot_id)
             if ret is None:
-                self.__logger.exception(f"Slot with ID {slot_id} not found.")
                 raise NoSuchSlotException(slot_id)
             return ret

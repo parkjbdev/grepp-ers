@@ -81,7 +81,7 @@ class ReservationRepositoryImpl(ReservationRepository):
                 return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException()
+                    raise SlotLimitExceededException() from None
                 raise
 
     async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
@@ -122,7 +122,7 @@ class ReservationRepositoryImpl(ReservationRepository):
                 return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException()
+                    raise SlotLimitExceededException() from None
                 raise
 
     async def delete_unconfirmed(self, reservation_id: int, user_id: int):
@@ -165,7 +165,7 @@ class ReservationRepositoryImpl(ReservationRepository):
                 return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException()
+                    raise SlotLimitExceededException() from None
                 raise
 
     async def modify_from_admin(self, reservation_id: int, reservation: ReservationDto):
@@ -179,7 +179,7 @@ class ReservationRepositoryImpl(ReservationRepository):
                 return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException()
+                    raise SlotLimitExceededException() from None
                 raise
 
     async def delete_from_admin(self, reservation_id: int):

@@ -1,4 +1,4 @@
-from asyncpg import Connection, Pool, PostgresError, UniqueViolationError
+from asyncpg import Connection, Pool, UniqueViolationError
 
 from app.repositories.user.exceptions import NoSuchUserException, UserNameAlreadyExistsException
 from app.repositories.user.interface import UserRepository
@@ -24,7 +24,7 @@ class UserRepositoryImpl(UserRepository):
                                                  hashed_password)
                     return ret_id
             except UniqueViolationError as e:
-                raise UserNameAlreadyExistsException(username)
+                raise UserNameAlreadyExistsException(username) from None
 
     async def update_password(self, username: str, password: str):
         async with self.__pool.acquire() as conn:  # type: Connection
