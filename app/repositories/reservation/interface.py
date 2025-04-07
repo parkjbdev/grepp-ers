@@ -14,16 +14,22 @@ class ReservationRepository(ABC):
     async def find_by_id(self, reservation_id: int): pass
 
     @abstractmethod
+    async def find_reservation_by_slot(self, slot_id: int, confirmed: bool): pass
+
+    @abstractmethod
     async def insert(self, reservation: Reservation): pass
 
     @abstractmethod
     async def confirm_by_id(self, reservation_id: int): pass
 
     @abstractmethod
-    async def modify(self, id: int, reservation: ReservationDto, user_id: Optional[int] = None): pass
+    async def modify_from_admin(self, id: int, reservation: ReservationDto): pass
 
     @abstractmethod
-    async def delete(self, reservation_id: int, user_id: Optional[int] = None): pass
+    async def modify_unconfirmed(self, id: int, reservation: ReservationDto, user_id: int): pass
 
     @abstractmethod
-    async def find_reservation_by_slot(self, slot_id: int, confirmed: bool): pass
+    async def delete_from_admin(self, reservation_id: int): pass
+
+    @abstractmethod
+    async def delete_unconfirmed(self, reservation_id: int, user_id: int): pass

@@ -4,7 +4,7 @@ from typing import Optional
 from asyncpg import Connection, Pool, PostgresError
 
 from app.models.reservation_model import Reservation, ReservationDto
-from app.repositories.reservation.exceptions import SlotLimitExceededException
+from app.repositories.reservation.exceptions import NoSuchReservationException, SlotLimitExceededException
 from app.repositories.reservation.interface import ReservationRepository
 
 
@@ -61,23 +61,23 @@ class ReservationRepositoryImpl(ReservationRepository):
         base_query += "\nWHERE r.id = $1"
         async with self.__pool.acquire() as conn:  # type: Connection
             row = await conn.fetchrow(base_query, reservation_id)
+            if row is None:
+                raise NoSuchReservationException(reservation_id)
             return row
 
     async def find_reservation_by_slot(self, slot_id: int, confirmed: bool):
         base_query = self.__joined_query()
         base_query += "\nWHERE slot_id = $1 AND confirmed = $2"
         async with self.__pool.acquire() as conn:
-            row = await conn.fetchrow(base_query, slot_id, confirmed)
-            return row
+            return await conn.fetch(base_query, slot_id, confirmed)
 
     async def insert(self, reservation: Reservation):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
-                res = await conn.execute(
-                    "INSERT INTO reservations(slot_id, user_id, amount) VALUES($1, $2, $3)",
+                ret = await conn.fetchrow(
+                    "INSERT INTO reservations(slot_id, user_id, amount) VALUES($1, $2, $3) RETURNING id",
                     reservation.slot_id, reservation.user_id, reservation.amount)
-                affected_rows = int(res.split()[-1])
-                return affected_rows
+                return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException()
@@ -87,46 +87,58 @@ class ReservationRepositoryImpl(ReservationRepository):
     async def confirm_by_id(self, reservation_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
-                res = await conn.execute("UPDATE reservations SET confirmed = $1 WHERE id = $2", True, reservation_id)
-                affected_rows = int(res.split()[-1])
-                if affected_rows == 0:
-                    raise KeyError(f"Reservation not found: {reservation_id}")
-                return affected_rows
+                ret = await conn.fetchrow("UPDATE reservations SET confirmed = $1 WHERE id = $2 RETURNING id", True,
+                                          reservation_id)
+                if ret is None:
+                    raise NoSuchReservationException(reservation_id)
+                return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException()
                 raise
 
-    async def modify(self, id: int, reservation: ReservationDto, user_id: Optional[int] = None):
-        # TODO: 에러 핸들링 섬세하게... confirmed 여부에 따라 다르게
+    async def modify_from_admin(self, reservation_id: int, reservation: ReservationDto):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
-                if user_id is not None:
-                    res = await conn.execute(
-                        "UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3 AND user_id = $4 AND confirmed = FALSE",
-                        reservation.amount, reservation.slot_id, id, user_id)
-                else:
-                    res = await conn.execute("UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3",
-                                             reservation.amount, reservation.slot_id, id)
-                affected_rows = int(res.split()[-1])
-                if affected_rows == 0:
-                    raise KeyError(f"Reservation not found: {id}")
-                return affected_rows
+                ret = await conn.fetchrow(
+                    "UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3 RETURNING id",
+                    reservation.amount, reservation.slot_id, reservation_id)
+                if ret is None:
+                    raise NoSuchReservationException(reservation_id)
+                return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException()
                 raise
 
-    async def delete(self, reservation_id: int, user_id: Optional[int] = None):
+    async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
+        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
         async with self.__pool.acquire() as conn:  # type: Connection
-            if user_id is not None:
-                res = await conn.execute(
-                    "DELETE FROM reservations WHERE id = $1 AND user_id = $2 AND confirmed = FALSE", reservation_id,
-                    user_id)
-            else:
-                res = await conn.execute("DELETE FROM reservations WHERE id = $1", reservation_id)
+            try:
+                ret = await conn.fetchrow(
+                    "UPDATE reservations SET (amount, slot_id) = ($1, $2) WHERE id = $3 AND user_id = $4 AND confirmed = FALSE RETURNING id",
+                    reservation.amount, reservation.slot_id, reservation_id, user_id)
+                if ret is None:
+                    raise NoSuchReservationException(reservation_id)
+                return ret
+            except PostgresError as e:
+                if "SlotLimitExceeded" in str(e):
+                    raise SlotLimitExceededException()
+                raise
 
-            affected_rows = int(res.split()[-1])
-            if affected_rows == 0:
-                raise KeyError(f"Reservation not found: {reservation_id}")
-            return affected_rows
+    async def delete_from_admin(self, reservation_id: int):
+        async with self.__pool.acquire() as conn:  # type: Connection
+            ret = await conn.fetchrow("DELETE FROM reservations WHERE id = $1 RETURNING id", reservation_id)
+            if ret is None:
+                raise NoSuchReservationException(reservation_id)
+            return ret
+
+    async def delete_unconfirmed(self, reservation_id: int, user_id: int):
+        # TODO: 에러 핸들링 섬세하게... confirmed가 TRUE 일 경우 / user_id가 다를 경우 / id가 없을 경우
+        async with self.__pool.acquire() as conn:  # type: Connection
+            ret = await conn.fetchrow(
+                "DELETE FROM reservations WHERE id = $1 AND user_id = $2 AND confirmed = FALSE RETURNING id",
+                reservation_id,
+                user_id)
+            if ret is None:
+                raise NoSuchReservationException(reservation_id)

@@ -69,7 +69,7 @@ class ExamManagementServiceImpl(ExamManagementService):
     # async def modify_reservation(self, reservation: Reservation, user_id: int):
         # user can modify only user's own unconfirmed reservation
         try:
-            ret = await self.reservation_repo.modify(id, reservation, user_id)
+            ret = await self.reservation_repo.modify_unconfirmed(id, reservation, user_id)
             if ret is None:
                 raise Exception("Failed to modify reservation.. Is it already confirmed?")
         except KeyError as e:
@@ -79,7 +79,7 @@ class ExamManagementServiceImpl(ExamManagementService):
     async def delete_reservation(self, reservation_id: int, user_id: int):
         # user can delete only user's own unconfirmed reservation
         try:
-            await self.reservation_repo.delete(reservation_id, user_id)
+            await self.reservation_repo.delete_unconfirmed(reservation_id, user_id)
         except KeyError as e:
             self.__logger.exception(f"Reservation not found: {reservation_id}")
             raise

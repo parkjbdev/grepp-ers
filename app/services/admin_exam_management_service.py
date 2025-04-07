@@ -51,7 +51,7 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
     async def modify_reservation(self, id: int, reservation: ReservationDto):
         # admin can modify both confirmed/unconfirmed reservation
         try:
-            await self.reservation_repo.modify(id, reservation)
+            await self.reservation_repo.modify_from_admin(id, reservation)
         except SlotLimitExceededException as e:
             self.__logger.exception(
                 f"Slot limit exceeded: The time slot {reservation.slot_id} has reached its maximum capacity")
@@ -60,7 +60,7 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
     async def delete_reservation(self, reservation_id: int):
         # admin can delete both confirmed/unconfirmed reservation
         try:
-            await self.reservation_repo.delete(reservation_id)
+            await self.reservation_repo.delete_from_admin(reservation_id)
         except KeyError as e:
             self.__logger.exception(f"Reservation not found: {reservation_id}")
             raise
