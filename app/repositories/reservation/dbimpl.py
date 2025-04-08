@@ -4,9 +4,11 @@ from typing import Optional
 from asyncpg import Connection, Pool, PostgresError
 
 from app.models.reservation_model import Reservation, ReservationDto
-from app.repositories.reservation.exceptions import NoSuchReservationException, ReservationAlreadyConfirmedException, \
+from app.repositories.reservation.exceptions import DaysNotLeftEnoughException, NoSuchReservationException, \
+    ReservationAlreadyConfirmedException, \
     SlotLimitExceededException, UserMismatchException
 from app.repositories.reservation.interface import ReservationRepository
+from app.repositories.slot.exceptions import NoSuchSlotException
 
 
 class ReservationRepositoryImpl(ReservationRepository):
@@ -80,6 +82,50 @@ class ReservationRepositoryImpl(ReservationRepository):
                     reservation.slot_id, reservation.user_id, reservation.amount)
                 return ret
             except PostgresError as e:
+                if "SlotLimitExceeded" in str(e):
+                    raise SlotLimitExceededException() from None
+                raise
+
+    async def insert_if_days_left(self, reservation: Reservation, days_left: int = 3):
+        async with self.__pool.acquire() as conn:  # type: Connection
+            try:
+                query = f"""    
+WITH decision AS (
+    SELECT 
+        s.id AS slot_id,
+        LOWER(s.time_range) AS start_time
+    FROM slots s
+    WHERE s.id = $1
+),
+inserted AS (
+    INSERT INTO reservations(slot_id, user_id, amount)
+    SELECT d.slot_id, $2, $3
+    FROM decision d
+    WHERE d.start_time >= (NOW() + INTERVAL '{days_left} days')
+    RETURNING id
+)
+SELECT 
+    COALESCE(i.id, d.slot_id) AS id,
+    CASE 
+        WHEN i.id IS NOT NULL THEN 'inserted'
+        WHEN d.slot_id IS NOT NULL THEN 'too_late'
+        ELSE NULL
+    END AS status
+FROM decision d
+LEFT JOIN inserted i ON TRUE
+"""
+                ret = await conn.fetchrow(
+                    query,
+                    reservation.slot_id, reservation.user_id, reservation.amount)
+
+                if ret is None:
+                    raise NoSuchSlotException(reservation.slot_id)
+                elif ret["status"] == "too_late":
+                    raise DaysNotLeftEnoughException(days_left)
+                elif ret["status"] == "inserted":
+                    return ret["id"]
+            except PostgresError as e:
+                print(e)
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException() from None
                 raise

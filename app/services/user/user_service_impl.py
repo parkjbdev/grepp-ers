@@ -8,9 +8,11 @@ from app.models.reservation_model import Reservation, ReservationDto
 from app.models.slot_model import SlotWithAmount
 from app.models.slot_reservation_joined_model import ReservationWithSlot
 from app.repositories.reservation.dbimpl import ReservationRepository
-from app.repositories.reservation.exceptions import NoSuchReservationException, ReservationAlreadyConfirmedException, \
+from app.repositories.reservation.exceptions import DaysNotLeftEnoughException, NoSuchReservationException, \
+    ReservationAlreadyConfirmedException, \
     SlotLimitExceededException, UserMismatchException
 from app.repositories.slot.dbimpl import SlotRepository
+from app.repositories.slot.exceptions import NoSuchSlotException
 from app.services.exceptions import DBConflictException, DBUnknownException, NotFoundException
 from app.services.user.interface import ExamManagementService
 
@@ -51,10 +53,11 @@ class ExamManagementServiceImpl(ExamManagementService):
 
     async def add_reservation(self, reservation: Reservation):
         try:
-            ret = await self.reservation_repo.insert(reservation)
-            if ret is None:
-                self.__logger.exception("Failed to insert reservation.")
-                raise DBUnknownException()
+            await self.reservation_repo.insert_if_days_left(reservation, 3)
+        except NoSuchSlotException as e:
+            raise NotFoundException(str(e))
+        except DaysNotLeftEnoughException as e:
+            raise DBConflictException(str(e))
         except SlotLimitExceededException as e:
             raise DBConflictException(str(e))
         except PostgresError as e:

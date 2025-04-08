@@ -22,3 +22,9 @@ class UserMismatchException(Exception):
     def __init__(self, user_id: int):
         self.message = f"User ID {user_id} does not match the reservation. Only unconfirmed reservations can be deleted by user. Ask admin to delete."
         super().__init__(self.message)
+
+
+class DaysNotLeftEnoughException(Exception):
+    def __init__(self, days: int):
+        self.message = f"Reservation can be made only {days} days in advance."
+        super().__init__(self.message)

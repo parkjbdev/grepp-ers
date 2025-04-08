@@ -20,6 +20,9 @@ class ReservationRepository(ABC):
     async def insert(self, reservation: Reservation): pass
 
     @abstractmethod
+    async def insert_if_days_left(self, reservation: Reservation, days_left: int): pass
+
+    @abstractmethod
     async def confirm_by_id(self, reservation_id: int): pass
 
     @abstractmethod
