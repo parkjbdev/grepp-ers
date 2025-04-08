@@ -5,7 +5,7 @@ from jose import JWTError
 from app.auth.jwt import JWTUtils
 from app.models.user_model import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token/form")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
