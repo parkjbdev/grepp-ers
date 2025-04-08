@@ -1,5 +1,6 @@
 from argon2.exceptions import VerifyMismatchError
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Response, status
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
@@ -33,23 +34,19 @@ async def register_user(user: UserForm, service=InjectAuthService):
     await service.add_user(User(**user.model_dump(include={"username", "password"})))
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
-        content=MessageResponseModel(
-            message=f"User {user.username} registered successfully",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message=f"User {user.username} registered successfully",
+            )
         )
     )
 
 
-@router.post("/token",
-             summary="로그인 토큰 발급",
-             description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다.",
-             status_code=status.HTTP_200_OK,
-             response_model=MessageResponseModel
-             )
-async def login_user(user: UserForm, response: Response, service=InjectAuthService):
+async def handle_login(username: str, password: str, service=InjectAuthService):
     try:
-        user = await service.authenticate_user(user.username, user.password)
+        user = await service.authenticate_user(username, password)
         access_token = JWTUtils.issue_access_token(user)
-        response.headers["Authorization"] = f"Bearer {access_token}"
+        return access_token
 
     except VerifyMismatchError as e:
         raise HTTPException(
@@ -61,9 +58,51 @@ async def login_user(user: UserForm, response: Response, service=InjectAuthServi
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {e.username} not found",
         )
+
+
+@router.post("/token",
+             summary="로그인 토큰 발급",
+             description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다.",
+             status_code=status.HTTP_200_OK,
+             response_model=MessageResponseModel
+             )
+async def login_user(user: UserForm, response: Response, service=InjectAuthService):
+    access_token = await handle_login(user.username, user.password, service)
+    response.headers["Authorization"] = f"Bearer {access_token}"
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(
-            message="Login successful",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="Login successful",
+            )
+        )
+    )
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@router.post("/token/form",
+             summary="로그인 토큰 발급",
+             description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다.",
+             status_code=status.HTTP_200_OK,
+             response_model=TokenResponse
+             )
+async def login_user_from_form(
+        response: Response,
+        username: str = Form(...),
+        password: str = Form(...),
+        service=InjectAuthService):
+    access_token = await handle_login(username, password, service)
+    response.headers["Authorization"] = f"Bearer {access_token}"
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            TokenResponse(
+                access_token=access_token,
+                token_type="bearer",
+            )
         )
     )

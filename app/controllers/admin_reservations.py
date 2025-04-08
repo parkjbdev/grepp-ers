@@ -23,7 +23,7 @@ InjectService: AdminExamManagementService = Depends(admin_exam_management_servic
             summary="회원들의 모든 예약 조회",
             description="회원들이 예약한 내역을 모두 조회합니다.",
             status_code=status.HTTP_200_OK,
-            response_model=MessageResponseWithResultModel[List[ReservationWithSlotForResponse]]
+            response_model=MessageResponseWithResultModel[List[ReservationWithSlotForResponse]],
             )
 async def get_all_reservations(
         start_at: Optional[datetime] = None,
@@ -81,8 +81,10 @@ async def confirm_reservation(
         )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(
-            message="예약 승인에 성공했습니다.",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="예약 승인에 성공했습니다.",
+            )
         )
     )
 
@@ -113,8 +115,10 @@ async def modify_reservation(
         )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(
-            message="예약 수정에 성공했습니다.",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="예약 수정에 성공했습니다.",
+            )
         )
     )
 
@@ -138,7 +142,9 @@ async def remove_reservation_by_id(
                             )
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(
-            message="예약 삭제에 성공했습니다.",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="예약 삭제에 성공했습니다.",
+            )
         )
     )

@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
 from starlette import status
 from starlette.responses import JSONResponse
 
@@ -61,16 +60,13 @@ async def get_reservation_by_id(
 ):
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseWithResultModel(
-            message="예약 조회에 성공했습니다.",
-            result=await service.find_reservation_by_id(id)
+        content=jsonable_encoder(
+            MessageResponseWithResultModel(
+                message="예약 조회에 성공했습니다.",
+                result=await service.find_reservation_by_id(id)
+            )
         )
     )
-
-
-class ReservationForm(BaseModel):
-    slot_id: int
-    amount: int
 
 
 @router.post("",
@@ -80,7 +76,7 @@ class ReservationForm(BaseModel):
              response_model=MessageResponseModel
              )
 async def submit_new_reservation(
-        reservation: ReservationForm,
+        reservation: ReservationDto,
         user: User = Depends(get_current_user),
         service=InjectService
 ):
@@ -92,7 +88,9 @@ async def submit_new_reservation(
     await service.add_reservation(res)
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
-        content=MessageResponseModel(message="예약이 완료되었습니다."),
+        content=jsonable_encoder(
+            MessageResponseModel(message="예약이 완료되었습니다."),
+        )
     )
 
 
@@ -111,7 +109,9 @@ async def modify_reservation(
     await service.modify_reservation(id, reservation, user.id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(message="예약이 수정되었습니다."),
+        content=jsonable_encoder(
+            MessageResponseModel(message="예약이 수정되었습니다."),
+        )
     )
 
 
@@ -129,5 +129,7 @@ async def remove_reservation_by_id(
     await service.delete_reservation(id, user.id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=MessageResponseModel(message="예약이 삭제되었습니다."),
+        content=jsonable_encoder(
+            MessageResponseModel(message="예약이 삭제되었습니다."),
+        )
     )

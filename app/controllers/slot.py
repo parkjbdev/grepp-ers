@@ -14,7 +14,7 @@ from app.models.user_model import User
 from app.services.admin.admin_service_impl import AdminExamManagementService
 from app.services.user.user_service_impl import ExamManagementService
 
-router = APIRouter(prefix="/slots", tags=["슬롯"])
+router = APIRouter(prefix="/slots", tags=["테스트 슬롯"])
 
 InjectService: ExamManagementService = Depends(exam_management_service)
 InjectAdminService: AdminExamManagementService = Depends(admin_exam_management_service)
@@ -46,10 +46,12 @@ async def get_available_slots(
         rows = await service.find_slots(start_at, end_at)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=jsonable_encoder(MessageResponseWithResultModel[List[SlotForResponse]](
-                message="슬롯 조회에 성공했습니다.",
-                result=list(map(lambda x: SlotForResponse.from_slot_with_amount(x), rows))
-            ))
+            content=jsonable_encoder(
+                MessageResponseWithResultModel[List[SlotForResponse]](
+                    message="슬롯 조회에 성공했습니다.",
+                    result=list(map(lambda x: SlotForResponse.from_slot_with_amount(x), rows))
+                )
+            )
         )
     except ValueError as e:
         raise HTTPException(
@@ -79,7 +81,9 @@ async def add_new_slot(
     )
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
-        content=MessageResponseModel(
-            message="슬롯 추가에 성공했습니다.",
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="슬롯 추가에 성공했습니다.",
+            )
         )
     )
