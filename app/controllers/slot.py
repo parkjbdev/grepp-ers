@@ -117,3 +117,32 @@ async def add_new_slot(
             )
         )
     )
+
+
+@router.delete("/{id}",
+               summary="슬롯 삭제",
+               description="슬롯을 삭제합니다.",
+               status_code=status.HTTP_200_OK,
+               response_model=MessageResponseModel
+               )
+async def delete_slot(
+        id: int,
+        user: User = Depends(verify_admin),
+        service=InjectAdminService
+):
+    try:
+        await service.delete_exam_slot(id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"슬롯을 찾을 수 없습니다. {str(e)}"
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            MessageResponseModel(
+                message="슬롯 삭제에 성공했습니다.",
+            )
+        )
+    )

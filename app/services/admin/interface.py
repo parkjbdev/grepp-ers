@@ -11,6 +11,9 @@ class AdminExamManagementService(ABC):
     async def add_exam_slot(self, slot: Slot): pass
 
     @abstractmethod
+    async def delete_exam_slot(self, slot_id: int): pass
+
+    @abstractmethod
     async def find_reservations(self, start_at: Optional[datetime], end_at: Optional[datetime]): pass
 
     @abstractmethod
@@ -21,4 +24,3 @@ class AdminExamManagementService(ABC):
 
     @abstractmethod
     async def confirm_reservation(self, reservation_id: int): pass
-

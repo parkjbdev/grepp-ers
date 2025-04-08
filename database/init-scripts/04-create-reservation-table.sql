@@ -2,7 +2,7 @@ CREATE TABLE reservations
 (
     id           SERIAL PRIMARY KEY                                 NOT NULL,
     slot_id      INTEGER                                            NOT NULL
-        CONSTRAINT "reservations__slots.id_fk" REFERENCES slots (id),
+        CONSTRAINT "reservations__slots.id_fk" REFERENCES slots (id) ON DELETE CASCADE,
     user_id      INTEGER                                            NOT NULL
         CONSTRAINT "reservations__users.id_fk" REFERENCES users (id),
     amount       INTEGER                  DEFAULT 0                 NOT NULL CHECK (amount >= 0 AND amount <= 50000),
