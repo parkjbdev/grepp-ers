@@ -12,6 +12,7 @@ from app.models.reservation_model import ReservationDto
 from app.models.response_model import MessageResponseModel, MessageResponseWithResultModel
 from app.models.user_model import User
 from app.repositories.reservation.exceptions import SlotLimitExceededException
+from app.repositories.slot.exceptions import NoSuchSlotException
 from app.services.admin.admin_service_impl import AdminExamManagementService
 
 router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"])
@@ -21,7 +22,7 @@ InjectService: AdminExamManagementService = Depends(admin_exam_management_servic
 
 @router.get("",
             summary="회원들의 모든 예약 조회",
-            description="회원들이 예약한 내역을 모두 조회합니다.",
+            description="회원들이 예약한 내역을 모두 조회합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다. ",
             status_code=status.HTTP_200_OK,
             response_model=MessageResponseWithResultModel[List[ReservationWithSlotForResponse]],
             )
@@ -40,10 +41,7 @@ async def get_all_reservations(
 
     if start_at is not None and end_at is not None:
         if start_at > end_at:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="start_at must be before end_at",
-            )
+            raise ValueError("start_at must be before end_at")
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -67,18 +65,7 @@ async def confirm_reservation(
         user: User = Depends(verify_admin),
         service=InjectService
 ):
-    try:
-        await service.confirm_reservation(id)
-    except SlotLimitExceededException as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Slot limit exceeded: The slot limit 50000 exceeded"
-        )
-    except KeyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Reservation not found: {id}"
-        )
+    await service.confirm_reservation(id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
@@ -101,18 +88,7 @@ async def modify_reservation(
         user: User = Depends(verify_admin),
         service=InjectService
 ):
-    try:
-        await service.modify_reservation(id, reservation)
-    except SlotLimitExceededException as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Slot limit exceeded: The slot limit 50000 exceeded"
-        )
-    except KeyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Reservation not found: {reservation.id}"
-        )
+    await service.modify_reservation(id, reservation)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
@@ -134,12 +110,7 @@ async def remove_reservation_by_id(
         user: User = Depends(verify_admin),
         service=InjectService
 ):
-    try:
-        await service.delete_reservation(id)
-    except KeyError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Reservation not found: {id}"
-                            )
+    await service.delete_reservation(id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(

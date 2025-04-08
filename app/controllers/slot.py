@@ -14,7 +14,7 @@ from app.models.user_model import User
 from app.services.admin.admin_service_impl import AdminExamManagementService
 from app.services.user.user_service_impl import ExamManagementService
 
-router = APIRouter(prefix="/slots", tags=["테스트 슬롯"])
+router = APIRouter(prefix="/slots", tags=["시험 슬롯 관리"])
 
 InjectService: ExamManagementService = Depends(exam_management_service)
 InjectAdminService: AdminExamManagementService = Depends(admin_exam_management_service)
@@ -22,7 +22,7 @@ InjectAdminService: AdminExamManagementService = Depends(admin_exam_management_s
 
 @router.get("",
             summary="슬롯 조회",
-            description="슬롯을 조회합니다.",
+            description="슬롯을 조회합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다. ",
             status_code=status.HTTP_200_OK,
             response_model=MessageResponseWithResultModel[List[SlotForResponse]]
             )
@@ -31,33 +31,24 @@ async def get_available_slots(
         end_at: Optional[datetime] = None,
         service=InjectService
 ):
-    try:
-        if start_at and start_at.tzinfo is None:
-            start_at = start_at.replace(tzinfo=timezone.utc)
-        if end_at and end_at.tzinfo is None:
-            end_at = end_at.replace(tzinfo=timezone.utc)
+    if start_at and start_at.tzinfo is None:
+        start_at = start_at.replace(tzinfo=timezone.utc)
+    if end_at and end_at.tzinfo is None:
+        end_at = end_at.replace(tzinfo=timezone.utc)
 
-        if start_at is not None and end_at is not None:
-            if start_at > end_at:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="start_at must be before end_at",
-                )
-        rows = await service.find_slots(start_at, end_at)
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=jsonable_encoder(
-                MessageResponseWithResultModel[List[SlotForResponse]](
-                    message="슬롯 조회에 성공했습니다.",
-                    result=list(map(lambda x: SlotForResponse.from_slot_with_amount(x), rows))
-                )
+    if start_at is not None and end_at is not None:
+        if start_at > end_at:
+            raise ValueError("start_at must be before end_at")
+    rows = await service.find_slots(start_at, end_at)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            MessageResponseWithResultModel[List[SlotForResponse]](
+                message="슬롯 조회에 성공했습니다.",
+                result=list(map(lambda x: SlotForResponse.from_slot_with_amount(x), rows))
             )
         )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date format",
-        )
+    )
 
 
 @router.get("/{id}",
@@ -89,7 +80,7 @@ class SlotForm(BaseModel):
 
 @router.post("",
              summary="슬롯 추가",
-             description="슬롯을 추가합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다.",
+             description="슬롯을 추가합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다. 관리자에게만 슬롯 추가 권한이 부여됩니다.",
              status_code=status.HTTP_201_CREATED,
              response_model=MessageResponseModel
              )
@@ -121,7 +112,7 @@ async def add_new_slot(
 
 @router.delete("/{id}",
                summary="슬롯 삭제",
-               description="슬롯을 삭제합니다.",
+               description="슬롯을 삭제합니다. 관리자에게만 슬롯 삭제 권한이 부여됩니다.",
                status_code=status.HTTP_200_OK,
                response_model=MessageResponseModel
                )
@@ -130,14 +121,7 @@ async def delete_slot(
         user: User = Depends(verify_admin),
         service=InjectAdminService
 ):
-    try:
-        await service.delete_exam_slot(id)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"슬롯을 찾을 수 없습니다. {str(e)}"
-        )
-
+    await service.delete_exam_slot(id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(

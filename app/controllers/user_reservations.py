@@ -36,12 +36,13 @@ async def get_my_reservations(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
+    ret = await service.find_reservations(user_id=user.id, start_at=start_at, end_at=end_at)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
             MessageResponseWithResultModel[List[ReservationWithSlotForResponse]](
                 message="예약 조회에 성공했습니다.",
-                result=await service.find_reservations(user_id=user.id, start_at=start_at, end_at=end_at)
+                result=ret
             )
         )
     )
@@ -58,12 +59,13 @@ async def get_reservation_by_id(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
+    ret = await service.find_reservation_by_id(id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
             MessageResponseWithResultModel(
                 message="예약 조회에 성공했습니다.",
-                result=await service.find_reservation_by_id(id)
+                result=ret
             )
         )
     )

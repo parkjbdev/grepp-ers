@@ -86,7 +86,7 @@ class TokenResponse(BaseModel):
 
 @router.post("/token/form",
              summary="로그인 토큰 발급",
-             description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다.",
+             description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다. Swagger UI에서 사용하기 위해 x-www-form-urlencoded로 작성한 엔드포인트입니다.",
              status_code=status.HTTP_200_OK,
              response_model=TokenResponse
              )
