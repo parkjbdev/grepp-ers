@@ -1,6 +1,4 @@
-from typing import Optional
-
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
@@ -10,12 +8,10 @@ from app.models.user_model import User
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), access_token: Optional[str] = Cookie(None)):
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         return await JWTUtils.get_user_from_token(token)
     except JWTError:
-        return await JWTUtils.get_user_from_token(access_token)
-    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",

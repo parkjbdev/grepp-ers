@@ -1,11 +1,15 @@
 from datetime import UTC, datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
+from starlette.responses import JSONResponse
 
 from app.auth.auth_user import verify_admin
+from app.controllers.user_reservations import ReservationWithSlotForResponse
 from app.dependencies.config import admin_exam_management_service
 from app.models.reservation_model import ReservationDto
+from app.models.response_model import MessageResponseModel, MessageResponseWithResultModel
 from app.models.user_model import User
 from app.repositories.reservation.exceptions import SlotLimitExceededException
 from app.services.admin.admin_service_impl import AdminExamManagementService
@@ -18,7 +22,8 @@ InjectService: AdminExamManagementService = Depends(admin_exam_management_servic
 @router.get("",
             summary="회원들의 모든 예약 조회",
             description="회원들이 예약한 내역을 모두 조회합니다.",
-            status_code=status.HTTP_200_OK
+            status_code=status.HTTP_200_OK,
+            response_model=MessageResponseWithResultModel[List[ReservationWithSlotForResponse]]
             )
 async def get_all_reservations(
         start_at: Optional[datetime] = None,
@@ -40,13 +45,22 @@ async def get_all_reservations(
                 detail="start_at must be before end_at",
             )
 
-    return await service.find_reservations(start_at, end_at)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            MessageResponseWithResultModel(
+                message="예약 조회에 성공했습니다.",
+                result=await service.find_reservations(start_at, end_at)
+            )
+        )
+    )
 
 
 @router.patch("/{id}",
               summary="대기중인 예약 승인",
               description="예약 대기중인 내역을 승인합니다.",
-              status_code=status.HTTP_200_OK
+              status_code=status.HTTP_200_OK,
+              response_model=MessageResponseModel
               )
 async def confirm_reservation(
         id: int,
@@ -65,13 +79,19 @@ async def confirm_reservation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Reservation not found: {id}"
         )
-    return
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=MessageResponseModel(
+            message="예약 승인에 성공했습니다.",
+        )
+    )
 
 
 @router.put("/{id}",
             summary="예약 수정",
             description="예약을 수정합니다.",
-            status_code=status.HTTP_200_OK
+            status_code=status.HTTP_200_OK,
+            response_model=MessageResponseModel
             )
 async def modify_reservation(
         id: int,
@@ -91,12 +111,20 @@ async def modify_reservation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Reservation not found: {reservation.id}"
         )
-    return
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=MessageResponseModel(
+            message="예약 수정에 성공했습니다.",
+        )
+    )
 
 
 @router.delete("/{id}",
                summary="예약 삭제",
-               description="예약을 삭제합니다.")
+               description="예약을 삭제합니다.",
+               status_code=status.HTTP_200_OK,
+               response_model=MessageResponseModel
+               )
 async def remove_reservation_by_id(
         id: int,
         user: User = Depends(verify_admin),
@@ -108,4 +136,9 @@ async def remove_reservation_by_id(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Reservation not found: {id}"
                             )
-    return
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=MessageResponseModel(
+            message="예약 삭제에 성공했습니다.",
+        )
+    )
