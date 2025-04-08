@@ -49,7 +49,7 @@ async def root():
 async def exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"}
+        content={"detail": "Internal server error: " + str(exc)}
     )
 
 
@@ -57,7 +57,7 @@ async def exception_handler(request, exc):
 async def db_unknown_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Database error"}
+        content={"detail": "Database error: " + str(exc)}
     )
 
 
