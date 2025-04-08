@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -67,7 +67,7 @@ class SlotForm(BaseModel):
 
 @router.post("",
              summary="슬롯 추가",
-             description="슬롯을 추가합니다.",
+             description="슬롯을 추가합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다.",
              status_code=status.HTTP_201_CREATED,
              response_model=MessageResponseModel
              )
@@ -76,8 +76,16 @@ async def add_new_slot(
         user: User = Depends(verify_admin),
         service=InjectAdminService
 ):
+    start_at = slot.start_at
+    end_at = slot.end_at
+
+    if slot.start_at.tzinfo is None:
+        start_at = slot.start_at.replace(tzinfo=UTC)
+    if slot.end_at.tzinfo is None:
+        end_at = slot.end_at.replace(tzinfo=UTC)
+
     await service.add_exam_slot(
-        Slot.create_with_time_range(start_time=slot.start_at, end_time=slot.end_at)
+        Slot.create_with_time_range(start_time=start_at, end_time=end_at)
     )
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
