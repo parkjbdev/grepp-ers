@@ -15,8 +15,8 @@ class Reservation(BaseModel):
 
     @field_validator('amount')
     def amount_must_be_positive(cls, v):
-        if v < 0:
-            raise ValueError('amount must be greater than or equal to 0')
+        if v <= 0:
+            raise ValueError('amount must be greater than 0')
         return v
 
 

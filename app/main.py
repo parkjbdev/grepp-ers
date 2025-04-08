@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import ValidationError
 
 from app.controllers.admin_reservations import router as admin_controller
 from app.controllers.auth import router as auth_controller
@@ -80,5 +81,13 @@ async def db_unknown_exception_handler(request, exc):
 async def user_not_found_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc)}
+    )
+
+
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
         content={"detail": str(exc)}
     )
