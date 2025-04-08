@@ -104,6 +104,7 @@ fastapi dev
 
 ## 기술스택
 
+- docker
 - Python 3.13.2
 - FastAPI
 - PostgreSQL
