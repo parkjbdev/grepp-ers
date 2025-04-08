@@ -72,7 +72,7 @@ async def db_conflict_exception_handler(request, exc):
 async def db_unknown_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Database error"}
+        content={"detail": str(exc)}
     )
 
 

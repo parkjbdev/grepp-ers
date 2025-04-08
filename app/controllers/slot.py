@@ -60,6 +60,28 @@ async def get_available_slots(
         )
 
 
+@router.get("/{id}",
+            summary="슬롯 조회",
+            description="슬롯을 ID로 조회합니다.",
+            status_code=status.HTTP_200_OK,
+            response_model=MessageResponseWithResultModel[SlotForResponse]
+            )
+async def get_slot_by_id(
+        id: int,
+        service=InjectService
+):
+    slot = await service.find_slot_by_id(id)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=jsonable_encoder(
+            MessageResponseWithResultModel[SlotForResponse](
+                message="슬롯 조회에 성공했습니다.",
+                result=SlotForResponse.from_slot_with_amount(slot)
+            )
+        )
+    )
+
+
 class SlotForm(BaseModel):
     start_at: datetime
     end_at: datetime

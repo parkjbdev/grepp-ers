@@ -35,6 +35,18 @@ class ExamManagementServiceImpl(ExamManagementService):
             self.__logger.exception(f"Database error: {str(e)}")
             raise DBUnknownException()
 
+    async def find_slot_by_id(self, slot_id: int):
+        try:
+            row = await self.slot_repo.find_by_id(slot_id)
+            print(row)
+            return SlotWithAmount(**dict(row))
+        except NoSuchSlotException as e:
+            self.__logger.exception(f"Slot with ID {slot_id} not found.")
+            raise NotFoundException(str(e))
+        except PostgresError as e:
+            self.__logger.exception(f"Database error: {str(e)}")
+            raise DBUnknownException()
+
     async def find_reservations(self, user_id: int, start_at: datetime = None, end_at: datetime = None):
         try:
             rows = await self.reservation_repo.find(user_id=user_id, start_at=start_at, end_at=end_at)

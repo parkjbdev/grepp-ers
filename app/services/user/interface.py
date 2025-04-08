@@ -9,6 +9,9 @@ class ExamManagementService(ABC):
     async def find_slots(self, start_at: datetime, end_at: datetime): pass
 
     @abstractmethod
+    async def find_slot_by_id(self, slot_id: int): pass
+
+    @abstractmethod
     async def find_reservations(self, user_id: int, start_at: datetime = None, end_at: datetime = None): pass
 
     @abstractmethod

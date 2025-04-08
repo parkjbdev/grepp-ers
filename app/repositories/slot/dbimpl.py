@@ -49,6 +49,7 @@ class SlotRepositoryImpl(SlotRepository):
             ret = await conn.fetchrow(base_query, slot_id)
             if ret is None:
                 raise NoSuchSlotException(slot_id)
+            return ret
 
     async def insert(self, slot: Slot):
         async with self.__pool.acquire() as conn:  # type: Connection
