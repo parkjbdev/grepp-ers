@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
 
@@ -11,8 +11,6 @@ from app.dependencies.config import admin_exam_management_service
 from app.models.reservation_model import ReservationDto
 from app.models.response_model import MessageResponseModel, MessageResponseWithResultModel
 from app.models.user_model import User
-from app.repositories.reservation.exceptions import SlotLimitExceededException
-from app.repositories.slot.exceptions import NoSuchSlotException
 from app.services.admin.admin_service_impl import AdminExamManagementService
 
 router = APIRouter(prefix="/admin/reservations", tags=["관리자 예약관리"])
@@ -43,12 +41,14 @@ async def get_all_reservations(
         if start_at > end_at:
             raise ValueError("start_at must be before end_at")
 
+    ret = await service.find_reservations(start_at, end_at)
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
             MessageResponseWithResultModel(
                 message="예약 조회에 성공했습니다.",
-                result=await service.find_reservations(start_at, end_at)
+                result=ret
             )
         )
     )

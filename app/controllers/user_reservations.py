@@ -37,10 +37,11 @@ async def get_my_reservations(
         service=InjectService
 ):
     ret = await service.find_reservations(user_id=user.id, start_at=start_at, end_at=end_at)
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
-            MessageResponseWithResultModel[List[ReservationWithSlotForResponse]](
+            MessageResponseWithResultModel(
                 message="예약 조회에 성공했습니다.",
                 result=ret
             )
