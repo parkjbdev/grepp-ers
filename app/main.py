@@ -37,11 +37,11 @@ app.include_router(reservation_controller)
 
 
 @app.get("/",
-         summary="Redoc API 문서",
+         summary="API 문서",
          description="API 문서로 리다이렉트합니다.",
-         status_code=301)
+         )
 async def root():
-    return RedirectResponse(url="/redoc", status_code=status.HTTP_301_MOVED_PERMANENTLY)
+    return RedirectResponse(url="/docs")
 
 
 @app.exception_handler(Exception)
@@ -51,12 +51,14 @@ async def exception_handler(request, exc):
         content={"detail": "Internal server error"}
     )
 
+
 @app.exception_handler(DBUnknownException)
 async def db_unknown_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Database error"}
     )
+
 
 @app.exception_handler(DBConflictException)
 async def db_conflict_exception_handler(request, exc):
@@ -65,12 +67,14 @@ async def db_conflict_exception_handler(request, exc):
         content={"detail": str(exc)}
     )
 
+
 @app.exception_handler(NotFoundException)
 async def db_unknown_exception_handler(request, exc):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Database error"}
     )
+
 
 @app.exception_handler(UserNotFoundException)
 async def user_not_found_exception_handler(request, exc):
