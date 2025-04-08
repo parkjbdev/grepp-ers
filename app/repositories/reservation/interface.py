@@ -29,7 +29,11 @@ class ReservationRepository(ABC):
     async def modify_from_admin(self, id: int, reservation: ReservationDto): pass
 
     @abstractmethod
-    async def modify_unconfirmed(self, id: int, reservation: ReservationDto, user_id: int): pass
+    async def modify_unconfirmed_if_user_match(self, id: int, reservation: ReservationDto, user_id: int): pass
+
+    @abstractmethod
+    async def modify_unconfirmed_if_days_left_and_user_match(self, reservation_id: int, reservation: ReservationDto, user_id: int,
+                                                             days: int): pass
 
     @abstractmethod
     async def delete_from_admin(self, reservation_id: int): pass

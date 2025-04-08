@@ -32,8 +32,8 @@ def slot_repository(pool: Annotated[Pool, Depends(database.get_pool)]) -> SlotRe
 
 
 def reservation_repository(pool: Annotated[Pool, Depends(database.get_pool)]) -> ReservationRepository:
-    from app.repositories.reservation.dbimpl import ReservationRepositoryImpl
-    return ReservationRepositoryImpl(pool)
+    from app.repositories.reservation.dbimpl_transaction import ReservationRepositoryTransactionImpl
+    return ReservationRepositoryTransactionImpl(pool)
 
 
 # services

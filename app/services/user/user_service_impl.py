@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 from asyncpg import PostgresError
 from fastapi import Depends
@@ -32,7 +33,6 @@ class ExamManagementServiceImpl(ExamManagementService):
             rows = await self.slot_repo.find(start_at=start_at, end_at=end_at)
             return [SlotWithAmount(**dict(row)) for row in rows]
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
             raise DBUnknownException()
 
     async def find_slot_by_id(self, slot_id: int):
@@ -41,26 +41,23 @@ class ExamManagementServiceImpl(ExamManagementService):
             print(row)
             return SlotWithAmount(**dict(row))
         except NoSuchSlotException as e:
-            self.__logger.exception(f"Slot with ID {slot_id} not found.")
             raise NotFoundException(str(e))
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
-            raise DBUnknownException()
+            raise DBUnknownException(str(e))
 
-    async def find_reservations(self, user_id: int, start_at: datetime = None, end_at: datetime = None):
+    async def find_reservations(self, user_id: int, start_at: Optional[datetime],
+                                end_at: Optional[datetime]):
         try:
             rows = await self.reservation_repo.find(user_id=user_id, start_at=start_at, end_at=end_at)
             return [ReservationWithSlot(**dict(row)) for row in rows]
         except PostgresError as e:
-            self.__logger.exception(f"Database error: {str(e)}")
-            raise DBUnknownException()
+            raise DBUnknownException(str(e))
 
     async def find_reservation_by_id(self, reservation_id: int):
         try:
             row = await self.reservation_repo.find_by_id(reservation_id)
             return ReservationWithSlot(**dict(row))
         except NoSuchReservationException as e:
-            self.__logger.exception(f"Reservation with ID {reservation_id} not found.")
             raise NotFoundException(str(e))
 
     async def add_reservation(self, reservation: Reservation):
@@ -68,21 +65,20 @@ class ExamManagementServiceImpl(ExamManagementService):
             await self.reservation_repo.insert_if_days_left(reservation, 3)
         except NoSuchSlotException as e:
             raise NotFoundException(str(e))
-        except DaysNotLeftEnoughException as e:
-            raise DBConflictException(str(e))
-        except SlotLimitExceededException as e:
+        except (DaysNotLeftEnoughException, SlotLimitExceededException) as e:
             raise DBConflictException(str(e))
         except PostgresError as e:
-            raise DBUnknownException()
+            raise DBUnknownException(str(e))
 
     async def modify_reservation(self, id: int, reservation: ReservationDto, user_id: int):
         # async def modify_reservation(self, reservation: Reservation, user_id: int):
         # user can modify only user's own unconfirmed reservation
         try:
-            await self.reservation_repo.modify_unconfirmed(id, reservation, user_id)
-        except NoSuchReservationException as e:
+            await self.reservation_repo.modify_unconfirmed_if_days_left_and_user_match(id, reservation, user_id, 3)
+        except (NoSuchReservationException, NoSuchSlotException) as e:
             raise NotFoundException(str(e))
-        except (SlotLimitExceededException, ReservationAlreadyConfirmedException, UserMismatchException) as e:
+        except (SlotLimitExceededException, ReservationAlreadyConfirmedException, UserMismatchException,
+                DaysNotLeftEnoughException) as e:
             raise DBConflictException(str(e))
         except PostgresError as e:
             raise DBUnknownException()
@@ -93,7 +89,7 @@ class ExamManagementServiceImpl(ExamManagementService):
             await self.reservation_repo.delete_unconfirmed(reservation_id, user_id)
         except NoSuchReservationException as e:
             raise NotFoundException(str(e))
-        except (SlotLimitExceededException, ReservationAlreadyConfirmedException, UserMismatchException) as e:
+        except (ReservationAlreadyConfirmedException, UserMismatchException) as e:
             raise DBConflictException(str(e))
         except PostgresError as e:
-            raise DBUnknownException()
+            raise DBUnknownException(str(e))

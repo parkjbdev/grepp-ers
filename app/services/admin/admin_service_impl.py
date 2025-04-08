@@ -51,7 +51,7 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         # admin can modify both confirmed/unconfirmed reservation
         try:
             await self.reservation_repo.modify_from_admin(id, reservation)
-        except NoSuchReservationException as e:
+        except (NoSuchReservationException, NoSuchSlotException) as e:
             raise NotFoundException(str(e))
         except SlotLimitExceededException as e:
             raise DBConflictException(str(e))
@@ -71,6 +71,8 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
         # only admin can confirm reservation
         try:
             await self.reservation_repo.confirm_by_id(reservation_id)
+        except NoSuchReservationException as e:
+            raise NotFoundException(str(e))
         except SlotLimitExceededException as e:
             raise DBConflictException(str(e))
         except PostgresError as e:

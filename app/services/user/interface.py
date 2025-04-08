@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Optional
 
 from app.models.reservation_model import Reservation, ReservationDto
 
@@ -12,7 +13,8 @@ class ExamManagementService(ABC):
     async def find_slot_by_id(self, slot_id: int): pass
 
     @abstractmethod
-    async def find_reservations(self, user_id: int, start_at: datetime = None, end_at: datetime = None): pass
+    async def find_reservations(self, user_id: int, start_at: Optional[datetime],
+                                end_at: Optional[datetime]): pass
 
     @abstractmethod
     async def find_reservation_by_id(self, reservation_id: int): pass

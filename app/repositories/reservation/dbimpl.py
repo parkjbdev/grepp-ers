@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from asyncpg import Connection, Pool, PostgresError
@@ -130,7 +130,7 @@ LEFT JOIN inserted i ON TRUE
                     raise SlotLimitExceededException() from None
                 raise
 
-    async def modify_unconfirmed(self, reservation_id: int, reservation: ReservationDto, user_id: int):
+    async def modify_unconfirmed_if_user_match(self, reservation_id: int, reservation: ReservationDto, user_id: int):
         async with self.__pool.acquire() as conn:  # type: Connection
             try:
                 ret = await conn.fetchrow(
@@ -163,8 +163,75 @@ LEFT JOIN inserted i ON TRUE
                 elif ret["status"] == "user_mismatch":
                     raise UserMismatchException(user_id)
 
+                return ret
+            except PostgresError as e:
+                if "SlotLimitExceeded" in str(e):
+                    raise SlotLimitExceededException() from None
+                elif "reservations__slots.id_fk" in str(e):
+                    # naive check
+                    raise NoSuchSlotException(reservation.slot_id) from None
+                raise
+
+    async def modify_unconfirmed_if_days_left_and_user_match(self, reservation_id: int, reservation: ReservationDto,
+                                                             user_id: int,
+                                                             days: int):
+        # AWARE: the query is becoming rubbish... moving to transactionimpl
+        # I don't know if it's actually working correctly
+        query = """
+WITH 
+target AS (
+    SELECT * 
+    FROM reservations 
+    WHERE id = $1
+),
+slot_check AS (
+    SELECT * 
+    FROM slots 
+    WHERE id = $4
+),
+updated AS (
+    UPDATE reservations r
+    SET amount = $3, slot_id = $4
+    FROM target t, slot_check s
+    WHERE r.id = t.id 
+      AND t.user_id = $2 
+      AND t.confirmed = FALSE
+      AND s.id = $4
+      AND s.time_range < (NOW() + ($5 || ' days')::INTERVAL)
+    RETURNING r.id
+)
+SELECT 
+    COALESCE(u.id, t.id) AS id,
+    CASE 
+        WHEN t.id IS NULL THEN 'not_found'
+        WHEN s.id IS NULL THEN 'no_slot'
+        WHEN t.user_id != $2 THEN 'user_mismatch'
+        WHEN t.confirmed = TRUE THEN 'already_confirmed'
+        WHEN s.time_range >= (NOW() + ($5 || ' days')::INTERVAL) THEN 'days_not_enough'
+        ELSE 'updated'
+    END AS status
+FROM target t
+LEFT JOIN updated u ON t.id = u.id
+LEFT JOIN slot_check s ON s.id = $4
+        """
+        async with self.__pool.acquire() as conn:  # type: Connection
+            try:
+                ret = await conn.fetchrow(
+                    query,
+                    reservation_id, user_id, reservation.amount, reservation.slot_id, days)
                 if ret is None:
                     raise NoSuchReservationException(reservation_id)
+                elif ret["status"] == "already_confirmed":
+                    raise ReservationAlreadyConfirmedException(reservation_id)
+                elif ret["status"] == "user_mismatch":
+                    raise UserMismatchException(user_id)
+                elif ret["status"] == "days_not_enough":
+                    raise DaysNotLeftEnoughException(days)
+                elif ret["status"] == "not_found":
+                    raise NoSuchReservationException(reservation_id)
+                elif ret["status"] == "no_slot":
+                    raise NoSuchSlotException(reservation.slot_id)
+
                 return ret
             except PostgresError as e:
                 if "SlotLimitExceeded" in str(e):
