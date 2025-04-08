@@ -27,6 +27,7 @@ class AdminExamManagementServiceImpl(AdminExamManagementService):
             if ret is None:
                 self.__logger.exception("Failed to insert slot.")
                 raise DBUnknownException()
+            return ret['id']
         except SlotTimeRangeOverlapped as e:
             raise DBConflictException(str(e))
         except PostgresError as e:

@@ -97,14 +97,14 @@ async def add_new_slot(
     if slot.end_at.tzinfo is None:
         end_at = slot.end_at.replace(tzinfo=UTC)
 
-    await service.add_exam_slot(
+    ret = await service.add_exam_slot(
         Slot.create_with_time_range(start_time=start_at, end_time=end_at)
     )
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content=jsonable_encoder(
             MessageResponseModel(
-                message="슬롯 추가에 성공했습니다.",
+                message=f"슬롯 추가에 성공했습니다. 슬롯 ID는 {ret}입니다.",
             )
         )
     )
