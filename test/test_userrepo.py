@@ -73,7 +73,7 @@ class TestUserRepositoryImpl(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(UserNameAlreadyExistsException) as context:
             await self.repo.insert(username, "different_password")
 
-        self.assertEqual(context.exception.username, username, "예외에 포함된 사용자명이 입력한 값과 일치해야 합니다.")
+        self.assertTrue(username in context.exception.message, "예외에 포함된 사용자명이 입력한 값과 일치해야 합니다.")
 
     async def test_find_success(self):
         """사용자명으로 사용자 조회가 성공적으로 이루어지는지 테스트"""
@@ -143,7 +143,7 @@ class TestUserRepositoryImpl(unittest.IsolatedAsyncioTestCase):
         await self.repo.insert(username, password)
 
         # when
-        result = await self.repo.delete_by_username(username)
+        result = await self.repo.delete(username)
 
         # then
         self.assertIsNotNone(result, "사용자 삭제 결과가 None이면 안 됩니다.")
@@ -160,42 +160,9 @@ class TestUserRepositoryImpl(unittest.IsolatedAsyncioTestCase):
 
         # when & then
         with self.assertRaises(NoSuchUserException) as context:
-            await self.repo.delete_by_username(username)
+            await self.repo.delete(username)
 
         self.assertIn(f"username = {username}", context.exception.message)
-
-    async def test_delete_by_id_success(self):
-        """사용자 ID로 사용자 삭제가 성공적으로 이루어지는지 테스트"""
-        # given
-        username = "test_user6"
-        password = "hashed_password6"
-
-        # 사용자 생성
-        result = await self.repo.insert(username, password)
-        user_id = result["id"]
-
-        # when
-        delete_result = await self.repo.delete(user_id)
-
-        # then
-        self.assertIsNotNone(delete_result, "ID로 사용자 삭제 결과가 None이면 안 됩니다.")
-        self.assertEqual(delete_result["id"], user_id, "삭제된 사용자의 ID가 원래 사용자 ID와 일치해야 합니다.")
-
-        # 사용자가 정말 삭제되었는지 확인
-        async with self.pool.acquire() as conn:
-            user = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
-        self.assertIsNone(user)
-
-    async def test_delete_by_id_non_existent_user(self):
-        """존재하지 않는 사용자 ID로 삭제 시 예외가 발생하는지 테스트"""
-        # given
-        non_existent_id = 999999  # 존재하지 않는 ID
-
-        # when & then
-        with self.assertRaises(NoSuchUserException) as context:
-            await self.repo.delete(non_existent_id)
-
-        self.assertIn(f"id = {non_existent_id}", context.exception.message)
 
 
 if __name__ == "__main__":
