@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -11,10 +12,11 @@ from app.controllers.slot import router as slot_controller
 from app.controllers.user_reservations import router as reservation_controller
 from app.services.exceptions import DBConflictException, DBUnknownException, NotFoundException, UserNotFoundException
 
+load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_dotenv()
     from app.dependencies.config import database
     try:
         await database.connect()
@@ -26,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="GREPP Exam Reservation System",
+    summary=os.getenv("ENVIRONMENT"),
     description="Welcome to GREPP Exam Reservation System API Doc",
     root_path="/api",
     lifespan=lifespan

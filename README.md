@@ -2,51 +2,26 @@
 
 ## 실행방법
 
-### Makefile 활용
+- Prerequisite: Docker
+- 자동으로 PostgreSQL DB를 생성하고, FastAPI 서버를 실행합니다.
+- tldr; `./prod.sh` 실행
 
-- 빠른 실행을 위해 Makefile을 제작해두었습니다.
-- `make help`을 통해 사용법을 확인할 수 있습니다.
-- `make dev`를 통해 개발환경을 실행할 수 있습니다. (환경에 따라 실패할수도 있어요!)
-- `make prod`를 통해 배포환경을 실행할 수 있습니다. (**추천**)
-- 문제가 있을 경우, `make clean`을 통해 캐시를 삭제하고 다시 시도할 수 있습니다.
-- 문제가 지속될 경우, docker-compose를 통해 직접 실행할 수 있습니다.
+### Shell Script 이용
 
-### Docker Compose 활용
-
-#### Launch Production Build
-
-```sh
-docker compose down -v # Just to be sure...
-docker compose up --build -p grepp-ers-dev -d
-```
-
-#### Launch Development Build
-
+#### 배포환경 (권장)
 ```shell
-docker compose down -v # Just to be sure...
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -p grepp-ers-dev up -d --build
+./prod.sh # docker 에서 실행
 ```
 
-## API 문서
+#### 개발환경; db만 docker 에서 실행
+```shell
+./dev.sh
+```
 
-API 문서는 FastAPI에서 제공하는 Swagger UI를 통해 확인할 수 있습니다.
-
-Swagger를 통해 API를 테스트할 수 있습니다.
-
-- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-- Redoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
-### 기본 계정
-
-테스트를 위한 기본 User와 Admin 계정은 아래와 같습니다.
-
-- User
-    - ID: `user`
-    - Password: `password`
-- Admin
-    - ID: `admin`
-    - Password: `password`
-    - admin의 경우, 권한을 DB에서 직접 수정해야 합니다.
+#### 초기화
+```shell
+./clean.sh
+```
 
 ### 직접 실행
 
@@ -72,6 +47,27 @@ fastapi dev
 # fastapi run
 ```
 
+## API 문서
+
+API 문서는 FastAPI에서 제공하는 Swagger UI를 통해 확인할 수 있습니다.
+
+Swagger를 통해 API를 테스트할 수 있습니다.
+
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Redoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+## 기본 계정
+
+테스트를 위한 기본 User와 Admin 계정은 아래와 같습니다.
+
+- User
+    - ID: `user`
+    - Password: `password`
+- Admin
+    - ID: `admin`
+    - Password: `password`
+    - admin의 경우, 권한을 DB에서 직접 수정해야 합니다.
+
 ## 요구사항
 
 ### 1. 예약 조회, 신청
@@ -79,8 +75,8 @@ fastapi dev
 - [x] 고객은 예약 신청이 가능한 시간과 인원을 알 수 있습니다.
 
 - [x] 예약은 시험 시작 3일 전까지 신청 가능하며, 동 시간대에 최대 5만명까지 예약할 수 있습니다. 이때, 확정되지 않은 예약은 5만명의 제한에 포함되지 않습니다. 예약에는 시험 일정과 응시 인원이
-포함되어야 합니다.
-(예를 들어, 4월 15일 14시부터 16시까지 이미 3만 명의 예약이 확정되어 있을 경우, 예상 응시 인원이 2만명 이하인 추가 예약 신청이 가능합니다.)
+  포함되어야 합니다.
+  (예를 들어, 4월 15일 14시부터 16시까지 이미 3만 명의 예약이 확정되어 있을 경우, 예상 응시 인원이 2만명 이하인 추가 예약 신청이 가능합니다.)
 
 - [x] 고객은 본인이 등록한 예약만 조회할 수 있습니다.
 
