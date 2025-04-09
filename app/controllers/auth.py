@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 
 from app.auth.jwt import JWTUtils
 from app.dependencies.config import auth_service
+from app.models.error_response_model import default_error_responses
 from app.models.response_model import MessageResponseModel
 from app.models.user_model import User
 from app.services.auth.auth_service_impl import AuthService, UserNotFoundException
@@ -27,6 +28,7 @@ class UserForm(BaseModel):
              summary="회원가입",
              description="회원가입을 진행합니다.",
              status_code=status.HTTP_201_CREATED,
+             responses=default_error_responses,
              response_model=MessageResponseModel
              )
 async def register_user(user: UserForm, service=InjectAuthService):
@@ -64,6 +66,7 @@ async def handle_login(username: str, password: str, service=InjectAuthService):
              summary="로그인 토큰 발급",
              description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다.",
              status_code=status.HTTP_200_OK,
+             responses=default_error_responses,
              response_model=MessageResponseModel
              )
 async def login_user(user: UserForm, response: Response, service=InjectAuthService):
@@ -88,6 +91,7 @@ class TokenResponse(BaseModel):
              summary="로그인 토큰 발급",
              description="로그인 후 토큰을 발급받습니다. 토큰은 Bearer 방식으로 헤더에 담아 사용합니다. Swagger UI에서 사용하기 위해 x-www-form-urlencoded로 작성한 엔드포인트입니다.",
              status_code=status.HTTP_200_OK,
+             responses=default_error_responses,
              response_model=TokenResponse
              )
 async def login_user_from_form(

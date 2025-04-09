@@ -8,6 +8,7 @@ from starlette.responses import JSONResponse
 
 from app.auth.auth_user import verify_admin
 from app.dependencies.config import admin_exam_management_service, exam_management_service
+from app.models.error_response_model import default_error_responses
 from app.models.response_model import MessageResponseModel, MessageResponseWithResultModel
 from app.models.slot_model import Slot, SlotForResponse
 from app.models.user_model import User
@@ -24,6 +25,7 @@ InjectAdminService: AdminExamManagementService = Depends(admin_exam_management_s
             summary="슬롯 조회",
             description="슬롯을 조회합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다. ",
             status_code=status.HTTP_200_OK,
+            responses=default_error_responses,
             response_model=MessageResponseWithResultModel[List[SlotForResponse]]
             )
 async def get_available_slots(
@@ -55,6 +57,7 @@ async def get_available_slots(
             summary="슬롯 조회",
             description="슬롯을 ID로 조회합니다.",
             status_code=status.HTTP_200_OK,
+            responses=default_error_responses,
             response_model=MessageResponseWithResultModel[SlotForResponse]
             )
 async def get_slot_by_id(
@@ -82,6 +85,7 @@ class SlotForm(BaseModel):
              summary="슬롯 추가",
              description="슬롯을 추가합니다. ISO8601 포맷 작성시 TIME ZONE에 유의하세요!! TIME ZONE이 없으면 UTC로 간주합니다. 관리자에게만 슬롯 추가 권한이 부여됩니다.",
              status_code=status.HTTP_201_CREATED,
+             responses=default_error_responses,
              response_model=MessageResponseModel
              )
 async def add_new_slot(
@@ -114,6 +118,7 @@ async def add_new_slot(
                summary="슬롯 삭제",
                description="슬롯을 삭제합니다. 관리자에게만 슬롯 삭제 권한이 부여됩니다.",
                status_code=status.HTTP_200_OK,
+               responses=default_error_responses,
                response_model=MessageResponseModel
                )
 async def delete_slot(

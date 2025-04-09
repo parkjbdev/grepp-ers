@@ -8,6 +8,7 @@ from starlette.responses import JSONResponse
 
 from app.auth.auth_user import get_current_user
 from app.dependencies.config import exam_management_service
+from app.models.error_response_model import default_error_responses
 from app.models.reservation_model import Reservation, ReservationDto
 from app.models.response_model import MessageResponseModel, MessageResponseWithResultModel
 from app.models.slot_model import TimeRangeSchema
@@ -28,6 +29,7 @@ class ReservationWithSlotForResponse(ReservationWithSlot):
             summary="자신의 예약 조회",
             description="자신이 예약한 내역을 조회합니다.",
             status_code=status.HTTP_200_OK,
+            responses=default_error_responses,
             response_model=MessageResponseWithResultModel[List[ReservationWithSlotForResponse]]
             )
 async def get_my_reservations(
@@ -53,6 +55,7 @@ async def get_my_reservations(
             summary="자신의 예약 조회",
             description="자신이 예약한 내역을 ID로 조회합니다.",
             status_code=status.HTTP_200_OK,
+            responses=default_error_responses,
             response_model=MessageResponseWithResultModel[ReservationWithSlotForResponse]
             )
 async def get_reservation_by_id(
@@ -76,6 +79,7 @@ async def get_reservation_by_id(
              summary="새로운 예약 신청",
              description="새로운 예약을 신청합니다.",
              status_code=status.HTTP_201_CREATED,
+             responses=default_error_responses,
              response_model=MessageResponseModel
              )
 async def submit_new_reservation(
@@ -101,6 +105,7 @@ async def submit_new_reservation(
             summary="예약 수정",
             description="자신의 예약을 수정합니다. 예약이 확정되기 전에만 수정할 수 있습니다.",
             status_code=status.HTTP_200_OK,
+            responses=default_error_responses,
             response_model=MessageResponseModel
             )
 async def modify_reservation(
@@ -122,6 +127,7 @@ async def modify_reservation(
                summary="예약 삭제",
                description="자신의 예약을 삭제합니다. 예약이 확정되기 전에만 삭제할 수 있습니다.",
                status_code=status.HTTP_200_OK,
+               responses=default_error_responses,
                response_model=MessageResponseModel
                )
 async def remove_reservation_by_id(
