@@ -125,51 +125,8 @@ LEFT JOIN inserted i ON TRUE
                 elif ret["status"] == "inserted":
                     return ret["id"]
             except PostgresError as e:
-                print(e)
                 if "SlotLimitExceeded" in str(e):
                     raise SlotLimitExceededException() from None
-                raise
-
-    async def modify_unconfirmed_if_user_match(self, reservation_id: int, reservation: ReservationDto, user_id: int):
-        async with self.__pool.acquire() as conn:  # type: Connection
-            try:
-                ret = await conn.fetchrow(
-                    """
-                    WITH target AS (
-                        SELECT * FROM reservations WHERE id = $1
-                    ), updated AS (
-                        UPDATE reservations r
-                        SET (amount, slot_id) = ($3, $4)
-                        FROM target
-                        WHERE r.id = target.id AND r.user_id = $2 AND r.confirmed = FALSE
-                        RETURNING r.id
-                    )
-                    SELECT 
-                    COALESCE(u.id, t.id) AS id,
-                    CASE
-                        WHEN t.user_id != $2 THEN 'user_mismatch'
-                        WHEN t.confirmed = TRUE THEN 'already_confirmed'
-                        ELSE 'updated'
-                    END AS status
-                    FROM target t
-                    LEFT JOIN updated u ON t.id = u.id
-                    """, reservation_id, user_id, reservation.amount, reservation.slot_id)
-
-                # response: id, status
-                if ret is None:
-                    raise NoSuchReservationException(reservation_id)
-                elif ret["status"] == "already_confirmed":
-                    raise ReservationAlreadyConfirmedException(reservation_id)
-                elif ret["status"] == "user_mismatch":
-                    raise UserMismatchException(user_id)
-
-                return ret
-            except PostgresError as e:
-                if "SlotLimitExceeded" in str(e):
-                    raise SlotLimitExceededException() from None
-                elif "reservations__slots.id_fk" in str(e):
-                    # naive check
-                    raise NoSuchSlotException(reservation.slot_id) from None
                 raise
 
     async def modify_unconfirmed_if_days_left_and_user_match(self, reservation_id: int, reservation: ReservationDto,

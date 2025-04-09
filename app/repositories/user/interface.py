@@ -9,10 +9,7 @@ class UserRepository(ABC):
     async def insert(self, username: str, hashed_password: str): pass
 
     @abstractmethod
-    async def delete_by_username(self, username: str): pass
-
-    @abstractmethod
     async def delete(self, username: str): pass
 
     @abstractmethod
-    async def update_password(self, username: str, password: str): pass
+    async def update_password(self, username: str, hashed_password: str): pass

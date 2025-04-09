@@ -38,7 +38,6 @@ class ExamManagementServiceImpl(ExamManagementService):
     async def find_slot_by_id(self, slot_id: int):
         try:
             row = await self.slot_repo.find_by_id(slot_id)
-            print(row)
             return SlotWithAmount(**dict(row))
         except NoSuchSlotException as e:
             raise NotFoundException(str(e))

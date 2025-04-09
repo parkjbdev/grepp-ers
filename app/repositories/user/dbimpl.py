@@ -26,18 +26,11 @@ class UserRepositoryImpl(UserRepository):
             except UniqueViolationError as e:
                 raise UserNameAlreadyExistsException(username) from None
 
-    async def update_password(self, username: str, password: str):
+    async def update_password(self, username: str, hashed_password: str):
         async with self.__pool.acquire() as conn:  # type: Connection
             ret_id = await conn.fetchrow("UPDATE users SET password = $1 WHERE username = $2 RETURNING id",
-                                         password,
+                                         hashed_password,
                                          username)
-            if ret_id is None:
-                raise NoSuchUserException(f"username = {username}")
-            return ret_id
-
-    async def delete_by_username(self, username: str):
-        async with self.__pool.acquire() as conn:  # type: Connection
-            ret_id = await conn.fetchrow("DELETE FROM users WHERE username = $1 RETURNING id", username)
             if ret_id is None:
                 raise NoSuchUserException(f"username = {username}")
             return ret_id
@@ -48,3 +41,4 @@ class UserRepositoryImpl(UserRepository):
             if ret_id is None:
                 raise NoSuchUserException(f"username = {username}")
             return ret_id
+
