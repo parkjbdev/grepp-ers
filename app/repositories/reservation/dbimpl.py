@@ -59,11 +59,18 @@ class ReservationRepositoryImpl(ReservationRepository):
             rows = await conn.fetch(base_query, *params)
             return rows
 
-    async def find_by_id(self, reservation_id: int):
+    async def find_by_id(self, reservation_id: int, user_id: Optional[int] = None):
+        params = []
         base_query = self.__joined_query()
         base_query += "\nWHERE r.id = $1"
+        params.append(reservation_id)
+
+        if user_id is not None:
+            base_query += " AND r.user_id = $2"
+            params.append(user_id)
+
         async with self.__pool.acquire() as conn:  # type: Connection
-            row = await conn.fetchrow(base_query, reservation_id)
+            row = await conn.fetchrow(base_query, *params)
             if row is None:
                 raise NoSuchReservationException(reservation_id)
             return row

@@ -11,7 +11,7 @@ class ReservationRepository(ABC):
                    end_at: Optional[datetime] = None): pass
 
     @abstractmethod
-    async def find_by_id(self, reservation_id: int): pass
+    async def find_by_id(self, reservation_id: int, user_id: Optional[int] = None): pass
 
     @abstractmethod
     async def find_reservation_by_slot(self, slot_id: int, confirmed: bool): pass

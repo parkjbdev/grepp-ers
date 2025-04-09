@@ -17,7 +17,7 @@ class ExamManagementService(ABC):
                                 end_at: Optional[datetime]): pass
 
     @abstractmethod
-    async def find_reservation_by_id(self, reservation_id: int): pass
+    async def find_reservation_by_id(self, reservation_id: int, user_id: Optional[int] = None): pass
 
     @abstractmethod
     async def add_reservation(self, reservation: Reservation): pass

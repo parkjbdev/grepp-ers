@@ -52,9 +52,9 @@ class ExamManagementServiceImpl(ExamManagementService):
         except PostgresError as e:
             raise DBUnknownException(str(e))
 
-    async def find_reservation_by_id(self, reservation_id: int):
+    async def find_reservation_by_id(self, reservation_id: int, user_id: Optional[int] = None):
         try:
-            row = await self.reservation_repo.find_by_id(reservation_id)
+            row = await self.reservation_repo.find_by_id(reservation_id, user_id=user_id)
             return ReservationWithSlot(**dict(row))
         except NoSuchReservationException as e:
             raise NotFoundException(str(e))

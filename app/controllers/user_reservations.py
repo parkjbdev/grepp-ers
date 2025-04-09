@@ -60,7 +60,7 @@ async def get_reservation_by_id(
         user: User = Depends(get_current_user),
         service=InjectService
 ):
-    ret = await service.find_reservation_by_id(id)
+    ret = await service.find_reservation_by_id(id, user_id=user.id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content=jsonable_encoder(
