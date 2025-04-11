@@ -1,5 +1,7 @@
 # GREPP ERS (Exam Reservation System)
 
+Server Live on: [https://grepp.parkjb.com](https://grepp.parkjb.com)
+
 ## 실행방법
 
 - Prerequisite: Docker
